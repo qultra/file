@@ -4,10 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>uooo — 궁극의 파일 암호화</title>
-<!-- StreamSaver – 스트리밍 다운로드 폴백 -->
+<!-- StreamSaver (MIT) – 스트리밍 다운로드 폴백 -->
 <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.3/StreamSaver.min.js"></script>
-<!-- libsodium-wrappers UMD (안정적) -->
-<script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/libsodium-wrappers.js"></script>
 <style>
   :root {
     --bg-deep: #05070a;
@@ -96,10 +94,39 @@
   .hidden { display: none !important; }
   .note { font-size: 0.8rem; color: var(--text-secondary); }
   .status { min-height: 1.5rem; margin-top: 0.5rem; font-weight: 500; }
+  .loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .loading-box {
+    background: var(--glass-bg); backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: 24px;
+    padding: 3rem; text-align: center;
+    box-shadow: 0 0 60px var(--accent-glow);
+  }
+  .spinner {
+    width: 50px; height: 50px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1.5rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   @media (max-width: 600px) { body { padding: 1rem; } .app-container { padding: 1.5rem; } }
 </style>
 </head>
 <body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box" id="loadingBox">
+    <div class="spinner"></div>
+    <p style="color:var(--text); font-weight:600;">암호화 엔진 준비 중...</p>
+    <p class="note" style="margin-top:0.5rem;">라이브러리를 불러오는 중입니다</p>
+  </div>
+</div>
 
 <div class="app-container">
   <div class="app-header">
@@ -201,25 +228,19 @@
 </div>
 
 <script>
-// ==================== 글로벌 libsodium 확인 ====================
-if (typeof libsodium === 'undefined') {
-  alert('libsodium 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
-}
-
 // ==================== 유틸 ====================
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 function concat(...arrs) { let len = arrs.reduce((a,b)=>a+b.length,0), r = new Uint8Array(len), off=0; for(let a of arrs){ r.set(a,off); off+=a.length; } return r; }
 function formatSize(b) { if(!b) return '0 B'; const k=1024, s=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(b)/Math.log(k)); return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]; }
 function shannonEntropy(b) { if(!b||!b.length) return 0; const c=new Array(256).fill(0); for(let x of b)c[x]++; let e=0; for(let v of c)if(v){let p=v/b.length; e-=p*Math.log2(p);} return e; }
 
-// BufferedStreamReader
 class BufferedStreamReader {
   constructor(s) { this.reader = s.getReader(); this.buffer = new Uint8Array(0); }
   async readExactly(n) { while(this.buffer.length<n){ let{done,value}=await this.reader.read(); if(done) throw new Error('EOF'); this.buffer=concat(this.buffer,value); } const r=this.buffer.slice(0,n); this.buffer=this.buffer.slice(n); return r; }
   async readSome() { if(this.buffer.length){ const r=this.buffer; this.buffer=new Uint8Array(0); return r; } const{done,value}=await this.reader.read(); return done?null:value; }
 }
 
-// ==================== BIP39 (2048단어) ====================
+// BIP39 (2048단어)
 const WORDLIST = ["abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance","advice","aerobic","affair","afford","afraid","after","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm","album","alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter","always","amateur","amazing","among","amount","amused","analyst","anchor","ancient","anger","angle","angry","animal","ankle","announce","annual","another","answer","antenna","antique","anxiety","any","apart","apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor","army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect","assault","asset","assist","assume","asthma","athlete","atom","attack","attend","attitude","attract","auction","audit","august","aunt","author","auto","autumn","average","avocado","avoid","awake","aware","away","awesome","awful","awkward","axis","baby","bachelor","bacon","badge","bag","balance","balcony","ball","bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle","beach","bean","beauty","because","become","beef","before","begin","behave","behind","believe","below","belt","bench","benefit","best","betray","better","between","beyond","bicycle","bid","bike","bind","biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood","blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","bonus","book","boost","border","boring","borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brass","brave","bread","breeze","brick","bridge","brief","bright","bring","brisk","broccoli","broken","bronze","broom","brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb","bulk","bullet","bundle","bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin","cable","cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon","canoe","canvas","canyon","capable","capital","captain","car","carbon","card","cargo","carpet","carry","cart","case","cash","casino","castle","casual","cat","catalog","catch","category","cattle","caught","cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk","champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry","chest","chicken","chief","child","chimney","choice","choose","chronic","chuckle","chunk","churn","cigar","cinnamon","circle","citizen","city","civil","claim","clap","clarify","claw","clay","clean","clerk","clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud","clown","club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color","column","combine","come","comfort","comic","common","company","concert","conduct","confirm","congress","connect","consider","control","convince","cook","cool","copper","copy","coral","core","corn","correct","cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle","craft","cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp","critic","crop","cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry","crystal","cube","culture","cup","cupboard","curious","current","curtain","curve","cushion","custom","cute","cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn","day","deal","debate","debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy","degree","delay","deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth","deputy","derive","describe","desert","design","desk","despair","destroy","detail","detect","develop","device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital","dignity","dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder","display","distance","divert","divide","divorce","dizzy","doctor","document","dog","doll","dolphin","domain","donate","donkey","donor","door","dose","double","dove","draft","dragon","drama","drastic","draw","dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb","dune","during","dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy","echo","ecology","economy","edge","edit","educate","effort","egg","eight","either","elbow","elder","electric","elegant","element","elephant","elevator","elite","else","embark","embody","embrace","emerge","emotion","employ","empower","empty","enable","enact","end","endless","endorse","enemy","energy","enforce","engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry","envelope","episode","equal","equip","era","erase","erode","erosion","error","erupt","escape","essay","essence","estate","eternal","ethics","evidence","evil","evoke","evolve","exact","example","excess","exchange","excite","exclude","excuse","execute","exercise","exhaust","exhibit","exile","exist","exit","exotic","expand","expect","expire","explain","expose","express","extend","extra","eye","eyebrow","fabric","face","faculty","fade","faint","faith","fall","false","fame","family","famous","fan","fancy","fantasy","farm","fashion","fat","fatal","father","fatigue","fault","favorite","feature","february","federal","fee","feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field","figure","file","film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit","fitness","fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor","flower","fluid","flush","fly","foam","focus","fog","foil","fold","follow","food","foot","force","forest","forget","fork","fortune","forum","forward","fossil","foster","found","fox","fragile","frame","frequent","fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel","fun","funny","furnace","fury","future","gadget","gain","galaxy","gallery","game","gap","garage","garbage","garden","garlic","garment","gas","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine","gesture","ghost","giant","gift","giggle","ginger","giraffe","girl","give","glad","glance","glare","glass","glide","glimpse","globe","gloom","glory","glove","glow","glue","goat","goddess","gold","good","goose","gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grass","gravity","great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guess","guide","guilt","guitar","gun","gym","habit","hair","half","hammer","hamster","hand","happy","harbor","hard","harsh","harvest","hat","have","hawk","hazard","head","health","heart","heavy","hedgehog","height","hello","helmet","help","hen","hero","hidden","high","hill","hint","hip","hire","history","hobby","hockey","hold","hole","holiday","hollow","home","honey","hood","hope","horn","horror","horse","hospital","host","hotel","hour","hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband","hybrid","ice","icon","idea","identify","idle","ignore","ill","illegal","illness","image","imitate","immense","immune","impact","impose","improve","impulse","inch","include","income","increase","index","indicate","indoor","industry","infant","inflict","inform","inhale","inherit","initial","inject","injury","inmate","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact","interest","into","invest","invite","involve","iron","island","isolate","issue","item","ivory","jacket","jaguar","jar","jazz","jealous","jeans","jelly","jewel","job","join","joke","journey","joy","judge","juice","jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup","key","kick","kid","kidney","kind","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know","lab","label","labor","ladder","lady","lake","lamp","language","laptop","large","later","latin","laugh","laundry","lava","law","lawn","lawsuit","layer","lazy","leader","leaf","learn","leave","lecture","left","leg","legal","legend","leisure","lemon","lend","length","lens","leopard","lesson","letter","level","liar","liberty","library","license","life","lift","light","like","limb","limit","link","lion","liquid","list","little","live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop","lottery","loud","lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyrics","machine","mad","magic","magnet","maid","mail","main","major","make","mammal","man","manage","mandate","mango","mansion","manual","maple","marble","march","margin","marine","market","marriage","mask","mass","master","match","material","math","matrix","matter","maximum","maze","meadow","mean","measure","meat","mechanic","medal","media","melody","melt","member","memory","mention","menu","mercy","merge","merit","merry","mesh","message","metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle","mirror","misery","miss","mistake","mix","mixed","mixture","mobile","model","modify","mom","moment","monitor","monkey","monster","month","moon","moral","more","morning","mosquito","mother","motion","motor","mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music","must","mutual","myself","mystery","myth","naive","name","napkin","narrow","nasty","nation","nature","near","neck","need","negative","neglect","neither","nephew","nerve","nest","net","network","neutral","never","news","next","nice","night","noble","noise","nominee","noodle","normal","north","nose","notable","note","nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey","object","oblige","obscure","observe","obtain","obvious","occur","ocean","october","odor","off","offer","office","often","oil","okay","old","olive","olympic","omit","once","one","onion","online","only","open","opera","opinion","oppose","option","orange","orbit","orchard","order","ordinary","organ","orient","original","orphan","ostrich","other","outdoor","outer","output","outside","oval","oven","over","own","owner","oxygen","oyster","ozone","pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper","parade","parent","park","parrot","party","pass","patch","path","patient","patrol","pattern","pause","pave","payment","peace","peanut","pear","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person","pet","phone","photo","phrase","physical","piano","picnic","picture","piece","pig","pigeon","pill","pilot","pink","pioneer","pipe","pistol","pitch","pizza","place","planet","plastic","plate","play","please","pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony","pool","popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice","praise","predict","prefer","prepare","present","pretty","prevent","price","pride","primary","print","priority","prison","private","prize","problem","process","produce","profit","program","project","promote","proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","pulse","pumpkin","punch","pupil","puppy","purchase","purity","purpose","purse","push","put","puzzle","pyramid","quality","quantum","quarter","question","quick","quit","quiz","quote","rabbit","raccoon","race","rack","radar","radio","rail","rain","raise","rally","ramp","ranch","random","range","rapid","rare","rate","rather","raven","raw","razor","ready","real","reason","rebel","rebuild","recall","receive","recipe","record","recycle","reduce","reflect","reform","refuse","region","regret","regular","reject","relax","release","relief","rely","remain","remember","remind","remove","render","renew","rent","reopen","repair","repeat","replace","report","require","rescue","resemble","resist","resource","response","result","retire","retreat","return","reunion","reveal","review","reward","rhythm","rib","ribbon","rice","rich","ride","ridge","rifle","right","rigid","ring","riot","ripple","risk","ritual","rival","river","road","roast","robot","robust","rocket","romance","roof","rookie","room","rose","rotate","rough","round","route","royal","rubber","rude","rug","rule","run","runway","rural","sad","saddle","sadness","safe","sail","salad","salmon","salon","salt","salute","same","sample","sand","satisfy","satoshi","sauce","sausage","save","say","scale","scan","scare","scatter","scene","scheme","school","science","scissors","scorpion","scout","scrap","screen","script","scrub","sea","search","season","seat","second","secret","section","security","seed","seek","segment","select","sell","seminar","senior","sense","sentence","series","service","session","settle","setup","seven","shadow","shaft","shallow","share","shed","shell","sheriff","shield","shift","shine","ship","shiver","shock","shoe","shoot","shop","short","shoulder","shove","shrimp","shrug","shuffle","shy","sibling","sick","side","siege","sight","sign","silent","silk","silly","silver","similar","simple","since","sing","siren","sister","situate","six","size","skate","sketch","ski","skill","skin","skirt","skull","slab","slam","sleep","slender","slice","slide","slight","slim","slogan","slot","slow","slush","small","smart","smile","smoke","smooth","snack","snake","snap","sniff","snow","soap","soccer","social","sock","soda","soft","solar","soldier","solid","solution","solve","someone","song","soon","sorry","sort","soul","sound","soup","source","south","space","spare","spatial","spawn","speak","special","speed","spell","spend","sphere","spice","spider","spike","spin","spirit","split","spoil","sponsor","spoon","sport","spot","spray","spread","spring","spy","square","squeeze","squirrel","stable","stadium","staff","stage","stairs","stamp","stand","start","state","stay","steak","steel","stem","step","stereo","stick","still","sting","stock","stomach","stone","stool","story","stove","strategy","street","strike","strong","struggle","student","stuff","stumble","style","subject","submit","subway","success","such","sudden","suffer","sugar","suggest","suit","summer","sun","sunny","sunset","super","supply","supreme","sure","surface","surge","surprise","surround","survey","suspect","sustain","swallow","swamp","swap","swarm","swear","sweet","swift","swim","swing","switch","sword","symbol","symptom","syrup","system","table","tackle","tag","tail","talent","talk","tank","tape","target","task","taste","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test","text","thank","that","theme","then","theory","there","they","thing","this","thought","three","thrive","throw","thumb","thunder","ticket","tide","tiger","tilt","timber","time","tiny","tip","tired","tissue","title","toast","tobacco","today","toddler","toe","together","toilet","token","tomato","tomorrow","tone","tongue","tonight","tool","tooth","top","topic","topple","torch","tornado","tortoise","toss","total","tourist","toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap","trash","travel","tray","treat","tree","trend","trial","tribe","trick","trigger","trim","trip","trophy","trouble","truck","true","truly","trumpet","trust","truth","try","tube","tuition","tumble","tuna","tunnel","turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical","ugly","umbrella","unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","unit","universe","unknown","unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset","urban","urge","usage","use","used","useful","useless","usual","utility","vacant","vacuum","vague","valid","valley","valve","van","vanish","vapor","various","vast","vault","vehicle","velvet","vendor","venture","venue","verb","verify","version","very","vessel","veteran","viable","vibrant","vicious","victory","video","view","village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal","voice","void","volcano","volume","vote","voyage","wage","wagon","wait","walk","wall","walnut","want","warfare","warm","warrior","wash","wasp","waste","water","wave","way","wealth","weapon","wear","weasel","weather","web","wedding","weekend","weird","welcome","west","wet","whale","what","wheat","wheel","when","where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner","winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","work","world","worry","worth","wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"];
 
 function mnemonicToEntropy(m) { const w=m.trim().split(/\s+/); if(w.length!==24) throw new Error('24단어 필요'); let bits=''; for(let x of w){ let i=WORDLIST.indexOf(x); if(i===-1) throw new Error('유효하지 않은 단어'); bits+=i.toString(2).padStart(11,'0'); } return {entropy:new Uint8Array(Array.from({length:32},(_,i)=>parseInt(bits.substr(i*8,8),2))), checksum:bits.substring(256)}; }
@@ -227,13 +248,13 @@ async function validateMnemonic(m) { try{ let{entropy,checksum}=mnemonicToEntrop
 async function generateMnemonic() { await ensureSodium(); let e=libsodium.randombytes_buf(32); let h=new Uint8Array(await crypto.subtle.digest('SHA-256',e)); let bits=''; for(let b of e)bits+=b.toString(2).padStart(8,'0'); bits+=h[0].toString(2).padStart(8,'0').substring(0,8); let w=[]; for(let i=0;i<bits.length;i+=11)w.push(WORDLIST[parseInt(bits.substring(i,i+11),2)]); return w.join(' '); }
 async function mnemonicToSeed(m) { let b=encoder.encode(m.normalize('NFKD')), s=encoder.encode('mnemonic'); let k=await crypto.subtle.importKey('raw',b,{name:'PBKDF2'},false,['deriveBits']); return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:s,iterations:2048,hash:'SHA-512'},k,512)); }
 
-// ==================== libsodium wrapper ====================
+// ==================== libsodium 로드 ====================
 let sodiumReady = false;
 async function ensureSodium() {
-  if (!sodiumReady) {
-    await libsodium.ready;
-    sodiumReady = true;
-  }
+  if (sodiumReady) return;
+  if (typeof libsodium === 'undefined') throw new Error('libsodium이 아직 로드되지 않았습니다.');
+  await libsodium.ready;
+  sodiumReady = true;
 }
 
 const ARGON_PRESETS={moderate:{ops:3,mem:64<<10},high:{ops:5,mem:256<<10},extreme:{ops:7,mem:512<<10},ultimate:{ops:10,mem:1024<<10}};
@@ -253,288 +274,336 @@ function tarHeader(fn,size){ let b=new Uint8Array(512), n=encoder.encode(fn); b.
 async function* tarFromEntries(entries){ for await(let e of entries){ yield tarHeader(e.fileName,e.fileSize); let r=e.bodyStream.getReader(), rem=e.fileSize; while(rem>0){let{done,value}=await r.read(); if(done)break; yield value; rem-=value.length;} let pad=(512-(e.fileSize%512))%512; if(pad)yield new Uint8Array(pad); } yield new Uint8Array(1024); }
 class ArchiveReader{ constructor(r){this.reader=r;} async *entries(){ while(true){ let nl=new Uint16Array((await this.reader.readExactly(2)).buffer.slice(0,2))[0]; if(nl===0)break; let nb=await this.reader.readExactly(nl), fn=decoder.decode(nb); let sb=await this.reader.readExactly(8), fs=Number(new DataView(sb.buffer.slice(0,8)).getBigUint64(0,true)); let self=this; let body=new ReadableStream({async start(c){ let rem=fs; while(rem>0){ let ch=await self.reader.readSome(); if(!ch){c.error(new Error('파일 부족'));return;} if(ch.length<=rem){c.enqueue(ch);rem-=ch.length;}else{c.enqueue(ch.slice(0,rem));self.reader.buffer=concat(ch.slice(rem),self.reader.buffer);rem=0;} } c.close(); }}); yield{fileName:fn,fileSize:fs,bodyStream:body}; } } }
 
-// ==================== UI 이벤트 (DOM 로드 후 실행) ====================
-window.addEventListener('DOMContentLoaded', () => {
-  // 요소 참조
-  const tabs = document.querySelector('.tabs');
-  const panelEncrypt = document.getElementById('panelEncrypt');
-  const panelDecrypt = document.getElementById('panelDecrypt');
-  const tabEncrypt = document.querySelector('[data-tab="encrypt"]');
-  const tabDecrypt = document.querySelector('[data-tab="decrypt"]');
+// ==================== UI 초기화 ====================
+let encFiles = [], decOutputDirHandle = null, abortController = null;
+function updateFileList() {
+  const ul = document.getElementById('fileListEnc');
+  ul.innerHTML = encFiles.map(f => `<li><span>${f.path}</span><span class="size">${formatSize(f.file.size)}</span></li>`).join('');
+  document.getElementById('totalSizeEnc').textContent = `총 ${encFiles.length}개 파일, ${formatSize(encFiles.reduce((a,b)=>a+b.file.size,0))}`;
+}
 
-  // 탭 전환
-  tabs.addEventListener('click', (e) => {
-    if (e.target.classList.contains('tab')) {
-      const mode = e.target.dataset.tab;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      e.target.classList.add('active');
-      panelEncrypt.classList.toggle('active', mode === 'encrypt');
-      panelDecrypt.classList.toggle('active', mode === 'decrypt');
+// 라이브러리 로딩 함수
+function loadLibrary(callback) {
+  const sources = [
+    'https://cdn.jsdelivr.net/gh/jedisct1/libsodium.js@master/dist/modules/libsodium-wrappers.js',
+    'https://esm.sh/libsodium-wrappers@master'
+  ];
+  let index = 0;
+
+  function tryNext() {
+    if (index >= sources.length) {
+      // 모두 실패
+      callback(new Error('CDN에서 라이브러리를 불러올 수 없습니다.'));
+      return;
     }
-  });
-
-  // 비밀번호 표시
-  document.getElementById('showEncPw').addEventListener('change', function() { document.getElementById('encPassword').type = this.checked ? 'text' : 'password'; });
-  document.getElementById('showDecPw').addEventListener('change', function() { document.getElementById('decPassword').type = this.checked ? 'text' : 'password'; });
-
-  // 인증 방식 UI
-  document.getElementById('authModeEnc').addEventListener('change', function() {
-    document.getElementById('keyfileBoxEnc').classList.toggle('hidden', this.value !== 'keyfile');
-    document.getElementById('mnemonicBoxEnc').classList.toggle('hidden', this.value !== 'mnemonic');
-  });
-  document.getElementById('authModeDec').addEventListener('change', function() {
-    document.getElementById('keyfileBoxDec').classList.toggle('hidden', this.value !== 'keyfile');
-    document.getElementById('mnemonicBoxDec').classList.toggle('hidden', this.value !== 'mnemonic');
-  });
-
-  // 비밀번호 강도
-  document.getElementById('encPassword').addEventListener('input', function() {
-    const pw = this.value; let score = 0;
-    if(pw.length >= 8) score++; if(pw.length >= 12) score++;
-    if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-    if(/\d/.test(pw)) score++; if(/[^A-Za-z0-9]/.test(pw)) score++;
-    const bar = document.getElementById('pwStrengthEnc'), txt = document.getElementById('pwStrengthTextEnc');
-    bar.style.width = (score * 20) + '%';
-    if (score < 2) { bar.style.background = 'var(--red)'; txt.textContent = '약함'; }
-    else if (score < 4) { bar.style.background = 'var(--yellow)'; txt.textContent = '보통'; }
-    else { bar.style.background = 'var(--green)'; txt.textContent = '강력함'; }
-  });
-
-  // 파일 목록 UI
-  let encFiles = [];
-  function updateFileList() {
-    const ul = document.getElementById('fileListEnc');
-    ul.innerHTML = encFiles.map(f => `<li><span>${f.path}</span><span class="size">${formatSize(f.file.size)}</span></li>`).join('');
-    document.getElementById('totalSizeEnc').textContent = `총 ${encFiles.length}개 파일, ${formatSize(encFiles.reduce((a,b)=>a+b.file.size,0))}`;
-  }
-
-  document.getElementById('addFilesEnc').addEventListener('click', () => {
-    const inp = document.createElement('input'); inp.type='file'; inp.multiple=true;
-    inp.onchange = () => { for(let f of inp.files) encFiles.push({file:f, path:f.name}); updateFileList(); };
-    inp.click();
-  });
-  document.getElementById('addFolderEnc').addEventListener('click', async () => {
-    try {
-      const dir = await window.showDirectoryPicker(); encFiles = [];
-      const walk = async (dh, pp) => { for await (const e of dh.values()) { const p=pp+e.name; if(e.kind==='file'){ const f=await e.getFile(); encFiles.push({file:f,path:p}); } else if(e.kind==='directory') await walk(e, p+'/'); } };
-      await walk(dir, '');
-      updateFileList();
-    } catch(e) { if(e.name !== 'AbortError') alert('폴더 선택이 지원되지 않는 브라우저입니다.'); }
-  });
-  document.getElementById('clearFilesEnc').addEventListener('click', () => { encFiles = []; updateFileList(); });
-
-  // 드래그 앤 드롭
-  const dropZone = document.getElementById('dropZoneEnc');
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', async e => {
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    const items = e.dataTransfer.items;
-    if (!items) return;
-    const walk = async (entry, pp) => {
-      if (entry.isFile) {
-        const file = await new Promise(res => entry.file(res));
-        encFiles.push({file, path: pp + '/' + entry.name});
-      } else if (entry.isDirectory) {
-        const reader = entry.createReader();
-        const readAll = () => new Promise((res, rej) => { const all=[]; const read=()=>reader.readEntries(e=>{ if(e.length){ all.push(...e); read(); } else res(all); }, rej); read(); });
-        const entries = await readAll();
-        for (const e of entries) await walk(e, pp + '/' + entry.name);
+    const script = document.createElement('script');
+    script.src = sources[index];
+    script.onload = () => {
+      // 라이브러리 로드 성공
+      if (typeof libsodium !== 'undefined') {
+        callback(null);
+      } else {
+        index++;
+        tryNext();
       }
     };
-    for (let i=0; i<items.length; i++) {
-      const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
-      if (entry) await walk(entry, '');
-    }
-    updateFileList();
-  });
-
-  // 복호화 폴더 선택
-  let decOutputDirHandle = null;
-  document.getElementById('selectOutputDirDec').addEventListener('click', async () => {
-    try {
-      decOutputDirHandle = await window.showDirectoryPicker();
-      document.getElementById('outputDirDecPath').textContent = '📁 ' + decOutputDirHandle.name;
-    } catch(e) { if(e.name!=='AbortError') alert('폴더 선택 불가, TAR 다운로드됩니다.'); }
-  });
-
-  // 키 파일 / 복구 구문 생성
-  document.getElementById('genKeyfileEnc').addEventListener('click', async () => {
-    await ensureSodium(); const buf = libsodium.randombytes_buf(512);
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = 'uooo_keyfile.key'; a.click();
-  });
-  document.getElementById('genMnemonicEnc').addEventListener('click', async () => {
-    await ensureSodium(); const m = await generateMnemonic();
-    document.getElementById('mnemonicEnc').value = m; alert('복구 구문 생성됨. 안전하게 보관하세요.');
-  });
-
-  // 암호화 메인
-  let abortController = null;
-  document.getElementById('encryptBtn').addEventListener('click', startEncrypt);
-  document.getElementById('cancelEncryptBtn').addEventListener('click', () => { if(abortController) abortController.abort(); });
-
-  async function startEncrypt() {
-    if (!encFiles.length) return alert('파일을 추가하세요.');
-    const pw = document.getElementById('encPassword').value; if (!pw) return alert('비밀번호 입력');
-    const preset = document.getElementById('argonPresetEnc').value;
-    const mode = document.getElementById('authModeEnc').value;
-    let second;
-    if (mode === 'keyfile') {
-      const f = document.getElementById('keyfileEnc').files[0]; if (!f) return alert('키 파일 선택');
-      second = new Uint8Array(await f.arrayBuffer());
-      if (second.length < 512) return alert('512B 이상 키 파일 필요');
-      const ent = shannonEntropy(second);
-      document.getElementById('keyfileInfoEnc').textContent = `엔트로피: ${ent.toFixed(1)}`;
-      if (ent < 6.5 && !confirm(`엔트로피 낮음(${ent.toFixed(1)}). 계속?`)) return;
-    } else {
-      const m = document.getElementById('mnemonicEnc').value.trim();
-      if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
-      second = m;
-    }
-
-    const status = document.getElementById('statusEnc'), prog = document.getElementById('progressEnc');
-    const cancelBtn = document.getElementById('cancelEncryptBtn'), startBtn = document.getElementById('encryptBtn');
-    status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
-    abortController = new AbortController(); const signal = abortController.signal;
-
-    try {
-      await ensureSodium();
-      const salt = libsodium.randombytes_buf(16), fek = libsodium.randombytes_buf(32);
-      const wkey = await deriveWrappingKey(pw, salt, second, preset);
-      const {nonce: wnonce, wrapped} = await wrapFEK(fek, wkey); wkey.fill(0);
-      const {header: sh, push} = createEncStream(fek); fek.fill(0);
-
-      let writer;
-      if (typeof window.showSaveFilePicker === 'function') {
-        try {
-          const handle = await window.showSaveFilePicker({ suggestedName: 'encrypted.uooo' });
-          writer = (await handle.createWritable()).getWriter();
-        } catch (e) { writer = streamSaver.createWriteStream('encrypted.uooo').getWriter(); }
-      } else {
-        writer = streamSaver.createWriteStream('encrypted.uooo').getWriter();
-      }
-
-      const magic = encoder.encode('UOOO'), ver = new Uint8Array([1]), wlenBuf = new Uint16Array([wrapped.length]);
-      await writer.write(magic); await writer.write(ver); await writer.write(salt);
-      await writer.write(wnonce); await writer.write(new Uint8Array(wlenBuf.buffer)); await writer.write(wrapped);
-      await writer.write(sh);
-
-      const totalBytes = encFiles.reduce((s,f) => s+f.file.size, 0); let processed = 0;
-      status.textContent = '암호화 중...';
-      for await (const chunk of archiveStream(encFiles)) {
-        if (signal.aborted) break;
-        for (let off=0; off<chunk.byteLength; off+=CHUNK_SIZE) {
-          const end = Math.min(off+CHUNK_SIZE, chunk.byteLength);
-          const c = new Uint8Array(chunk.buffer.slice(off, end));
-          const encChunk = push(c, libsodium.crypto_secretstream_xchacha20poly1305.TAG_MESSAGE);
-          const flen = new Uint32Array([encChunk.length]);
-          await writer.write(new Uint8Array(flen.buffer)); await writer.write(encChunk);
-          processed += c.length;
-          prog.value = Math.min(100, Math.round(processed / totalBytes * 100));
-        }
-      }
-      const finalEnc = push(new Uint8Array(0), libsodium.crypto_secretstream_xchacha20poly1305.TAG_FINAL);
-      const finalFlen = new Uint32Array([finalEnc.length]);
-      await writer.write(new Uint8Array(finalFlen.buffer)); await writer.write(finalEnc);
-      await writer.close();
-      status.textContent = '✅ 암호화 완료'; prog.value = 100;
-    } catch (e) {
-      if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
-      else status.textContent = '❌ 오류: ' + e.message;
-    } finally {
-      startBtn.disabled = false; cancelBtn.classList.add('hidden'); abortController = null;
-      encFiles = []; updateFileList();
-      setTimeout(() => prog.classList.add('hidden'), 2000);
-    }
+    script.onerror = () => {
+      index++;
+      tryNext();
+    };
+    document.head.appendChild(script);
   }
 
-  // 복호화 메인
-  document.getElementById('decryptBtn').addEventListener('click', startDecrypt);
-  document.getElementById('cancelDecryptBtn').addEventListener('click', () => { if(abortController) abortController.abort(); });
+  tryNext();
+}
 
-  async function startDecrypt() {
-    const vaultFile = document.getElementById('vaultFileDec').files[0]; if (!vaultFile) return alert('.uooo 파일 선택');
-    const pw = document.getElementById('decPassword').value; if (!pw) return alert('비밀번호 입력');
-    const preset = document.getElementById('argonPresetDec').value;
-    const mode = document.getElementById('authModeDec').value;
-    let second;
-    if (mode === 'keyfile') {
-      const f = document.getElementById('keyfileDec').files[0]; if (!f) return alert('키 파일 선택');
-      second = new Uint8Array(await f.arrayBuffer());
-    } else {
-      const m = document.getElementById('mnemonicDec').value.trim();
-      if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
-      second = m;
+// 앱 초기화
+function initApp() {
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingBox = document.getElementById('loadingBox');
+
+  // 15초 타임아웃으로 무한 로딩 방지
+  const timeoutId = setTimeout(() => {
+    loadingBox.innerHTML = `<p style="color:var(--red);">⚠️ 라이브러리 로딩 시간 초과</p>
+    <p class="note">인터넷 연결을 확인하거나 새로고침 해주세요.</p>
+    <button onclick="location.reload()" style="margin-top:1.5rem; padding:0.7rem 2rem; background:var(--accent); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">다시 시도</button>`;
+  }, 15000);
+
+  loadLibrary(async (err) => {
+    clearTimeout(timeoutId);
+    if (err) {
+      loadingBox.innerHTML = `<p style="color:var(--red);">⚠️ ${err.message}</p>
+      <p class="note">인터넷 연결을 확인하거나, HTTPS 서버에서 열어주세요.</p>
+      <button onclick="location.reload()" style="margin-top:1.5rem; padding:0.7rem 2rem; background:var(--accent); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">다시 시도</button>`;
+      return;
     }
-
-    const status = document.getElementById('statusDec'), prog = document.getElementById('progressDec');
-    const cancelBtn = document.getElementById('cancelDecryptBtn'), startBtn = document.getElementById('decryptBtn');
-    status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
-    abortController = new AbortController(); const signal = abortController.signal;
 
     try {
       await ensureSodium();
-      const reader = new BufferedStreamReader(vaultFile.stream());
-      const magic = await reader.readExactly(4); if (decoder.decode(magic) !== 'UOOO') throw new Error('올바른 uooo 파일 아님');
-      const ver = await reader.readExactly(1); if (ver[0] !== 1) throw new Error('지원되지 않는 버전');
-      const salt = await reader.readExactly(16);
-      const wnonce = await reader.readExactly(libsodium.crypto_aead_xchacha20poly1305_ietf.NPUBBYTES);
-      const wlen = new Uint16Array((await reader.readExactly(2)).buffer)[0];
-      const wrapped = await reader.readExactly(wlen);
-      const sh = await reader.readExactly(libsodium.crypto_secretstream_xchacha20poly1305.HEADERBYTES);
+      overlay.style.display = 'none';
+    } catch (e) {
+      loadingBox.innerHTML = `<p style="color:var(--red);">⚠️ 초기화 실패</p>
+      <p class="note">${e.message}</p>
+      <button onclick="location.reload()" style="margin-top:1.5rem; padding:0.7rem 2rem; background:var(--accent); color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">다시 시도</button>`;
+      return;
+    }
 
-      const wkey = await deriveWrappingKey(pw, salt, second, preset);
-      const fek = await unwrapFEK(wrapped, wnonce, wkey); wkey.fill(0);
-      const ds = createDecStream(sh, fek); fek.fill(0);
+    // 탭 전환
+    document.querySelector('.tabs').addEventListener('click', e => {
+      if (e.target.classList.contains('tab')) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById('panelEncrypt').classList.toggle('active', e.target.dataset.tab === 'encrypt');
+        document.getElementById('panelDecrypt').classList.toggle('active', e.target.dataset.tab === 'decrypt');
+      }
+    });
 
-      const plainReadable = new ReadableStream({
-        async start(controller) {
+    document.getElementById('showEncPw').addEventListener('change', function(){ document.getElementById('encPassword').type = this.checked ? 'text' : 'password'; });
+    document.getElementById('showDecPw').addEventListener('change', function(){ document.getElementById('decPassword').type = this.checked ? 'text' : 'password'; });
+
+    document.getElementById('authModeEnc').addEventListener('change', function(){
+      document.getElementById('keyfileBoxEnc').classList.toggle('hidden', this.value !== 'keyfile');
+      document.getElementById('mnemonicBoxEnc').classList.toggle('hidden', this.value !== 'mnemonic');
+    });
+    document.getElementById('authModeDec').addEventListener('change', function(){
+      document.getElementById('keyfileBoxDec').classList.toggle('hidden', this.value !== 'keyfile');
+      document.getElementById('mnemonicBoxDec').classList.toggle('hidden', this.value !== 'mnemonic');
+    });
+
+    document.getElementById('encPassword').addEventListener('input', function(){
+      const pw = this.value; let score = 0;
+      if(pw.length >= 8) score++; if(pw.length >= 12) score++;
+      if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+      if(/\d/.test(pw)) score++; if(/[^A-Za-z0-9]/.test(pw)) score++;
+      const bar = document.getElementById('pwStrengthEnc'), txt = document.getElementById('pwStrengthTextEnc');
+      bar.style.width = (score * 20) + '%';
+      bar.style.background = score < 2 ? 'var(--red)' : score < 4 ? 'var(--yellow)' : 'var(--green)';
+      txt.textContent = score < 2 ? '약함' : score < 4 ? '보통' : '강력함';
+    });
+
+    document.getElementById('addFilesEnc').addEventListener('click', () => {
+      const inp = document.createElement('input'); inp.type='file'; inp.multiple=true;
+      inp.onchange = () => { for(let f of inp.files) encFiles.push({file:f, path:f.name}); updateFileList(); };
+      inp.click();
+    });
+    document.getElementById('addFolderEnc').addEventListener('click', async () => {
+      try {
+        const dir = await window.showDirectoryPicker(); encFiles = [];
+        const walk = async (dh, pp) => { for await (const e of dh.values()) { const p=pp+e.name; if(e.kind==='file'){ const f=await e.getFile(); encFiles.push({file:f,path:p}); } else if(e.kind==='directory') await walk(e, p+'/'); } };
+        await walk(dir, '');
+        updateFileList();
+      } catch(e) { if(e.name !== 'AbortError') alert('폴더 선택이 지원되지 않는 브라우저입니다.'); }
+    });
+    document.getElementById('clearFilesEnc').addEventListener('click', () => { encFiles = []; updateFileList(); });
+
+    const dropZone = document.getElementById('dropZoneEnc');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', async e => {
+      e.preventDefault(); dropZone.classList.remove('drag-over');
+      const items = e.dataTransfer.items;
+      if (!items) return;
+      const walk = async (entry, pp) => {
+        if (entry.isFile) {
+          const file = await new Promise(res => entry.file(res));
+          encFiles.push({file, path: pp + '/' + entry.name});
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const readAll = () => new Promise((res, rej) => { const all=[]; const read=()=>reader.readEntries(e=>{ if(e.length){ all.push(...e); read(); } else res(all); }, rej); read(); });
+          const entries = await readAll();
+          for (const e of entries) await walk(e, pp + '/' + entry.name);
+        }
+      };
+      for (let i=0; i<items.length; i++) {
+        const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+        if (entry) await walk(entry, '');
+      }
+      updateFileList();
+    });
+
+    document.getElementById('selectOutputDirDec').addEventListener('click', async () => {
+      try {
+        decOutputDirHandle = await window.showDirectoryPicker();
+        document.getElementById('outputDirDecPath').textContent = '📁 ' + decOutputDirHandle.name;
+      } catch(e) { if(e.name!=='AbortError') alert('폴더 선택 불가, TAR 다운로드됩니다.'); }
+    });
+
+    document.getElementById('genKeyfileEnc').addEventListener('click', async () => {
+      await ensureSodium(); const buf = libsodium.randombytes_buf(512);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = 'uooo_keyfile.key'; a.click();
+    });
+    document.getElementById('genMnemonicEnc').addEventListener('click', async () => {
+      await ensureSodium(); const m = await generateMnemonic();
+      document.getElementById('mnemonicEnc').value = m; alert('복구 구문 생성됨. 안전하게 보관하세요.');
+    });
+
+    async function startEncrypt() {
+      if (!encFiles.length) return alert('파일을 추가하세요.');
+      const pw = document.getElementById('encPassword').value; if (!pw) return alert('비밀번호 입력');
+      const preset = document.getElementById('argonPresetEnc').value;
+      const mode = document.getElementById('authModeEnc').value;
+      let second;
+      if (mode === 'keyfile') {
+        const f = document.getElementById('keyfileEnc').files[0]; if (!f) return alert('키 파일 선택');
+        second = new Uint8Array(await f.arrayBuffer());
+        if (second.length < 512) return alert('512B 이상 키 파일 필요');
+        const ent = shannonEntropy(second);
+        document.getElementById('keyfileInfoEnc').textContent = `엔트로피: ${ent.toFixed(1)}`;
+        if (ent < 6.5 && !confirm(`엔트로피 낮음(${ent.toFixed(1)}). 계속?`)) return;
+      } else {
+        const m = document.getElementById('mnemonicEnc').value.trim();
+        if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
+        second = m;
+      }
+
+      const status = document.getElementById('statusEnc'), prog = document.getElementById('progressEnc');
+      const cancelBtn = document.getElementById('cancelEncryptBtn'), startBtn = document.getElementById('encryptBtn');
+      status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
+      abortController = new AbortController(); const signal = abortController.signal;
+
+      try {
+        await ensureSodium();
+        const salt = libsodium.randombytes_buf(16), fek = libsodium.randombytes_buf(32);
+        const wkey = await deriveWrappingKey(pw, salt, second, preset);
+        const {nonce: wnonce, wrapped} = await wrapFEK(fek, wkey); wkey.fill(0);
+        const {header: sh, push} = createEncStream(fek); fek.fill(0);
+
+        let writer;
+        if (typeof window.showSaveFilePicker === 'function') {
           try {
-            while (true) {
-              if (signal.aborted) { controller.error(new DOMException('Aborted','AbortError')); return; }
-              const lenBuf = await reader.readExactly(4);
-              const frameLen = new Uint32Array(lenBuf.buffer.slice(lenBuf.byteOffset, lenBuf.byteOffset+4))[0];
-              const cipher = await reader.readExactly(frameLen);
-              const plain = ds.pull(cipher);
-              if (plain && plain.length) controller.enqueue(plain);
-            }
-          } catch (e) {
-            if (e.message.includes('EOF')) controller.close();
-            else controller.error(e);
+            const handle = await window.showSaveFilePicker({ suggestedName: 'encrypted.uooo' });
+            writer = (await handle.createWritable()).getWriter();
+          } catch (e) { writer = streamSaver.createWriteStream('encrypted.uooo').getWriter(); }
+        } else {
+          writer = streamSaver.createWriteStream('encrypted.uooo').getWriter();
+        }
+
+        const magic = encoder.encode('UOOO'), ver = new Uint8Array([1]), wlenBuf = new Uint16Array([wrapped.length]);
+        await writer.write(magic); await writer.write(ver); await writer.write(salt);
+        await writer.write(wnonce); await writer.write(new Uint8Array(wlenBuf.buffer)); await writer.write(wrapped);
+        await writer.write(sh);
+
+        const totalBytes = encFiles.reduce((s,f) => s+f.file.size, 0); let processed = 0;
+        status.textContent = '암호화 중...';
+        for await (const chunk of archiveStream(encFiles)) {
+          if (signal.aborted) break;
+          for (let off=0; off<chunk.byteLength; off+=CHUNK_SIZE) {
+            const end = Math.min(off+CHUNK_SIZE, chunk.byteLength);
+            const c = new Uint8Array(chunk.buffer.slice(off, end));
+            const encChunk = push(c, libsodium.crypto_secretstream_xchacha20poly1305.TAG_MESSAGE);
+            const flen = new Uint32Array([encChunk.length]);
+            await writer.write(new Uint8Array(flen.buffer)); await writer.write(encChunk);
+            processed += c.length;
+            prog.value = Math.min(100, Math.round(processed / totalBytes * 100));
           }
         }
-      });
-
-      const archive = new ArchiveReader(new BufferedStreamReader(plainReadable));
-      status.textContent = '복호화 중...';
-      if (decOutputDirHandle) {
-        for await (const entry of archive.entries()) {
-          if (signal.aborted) break;
-          const parts = entry.fileName.split('/'); let cur = decOutputDirHandle;
-          for (let i=0; i<parts.length-1; i++) cur = await cur.getDirectoryHandle(parts[i], {create:true});
-          const fh = await cur.getFileHandle(parts[parts.length-1], {create:true});
-          const w = await fh.createWritable();
-          await entry.bodyStream.pipeTo(w);
-        }
-        status.textContent = '✅ 복호화 완료 (폴더 저장)';
-      } else {
-        const writer = streamSaver.createWriteStream('decrypted.tar').getWriter();
-        for await (const chunk of tarFromEntries(archive.entries())) {
-          if (signal.aborted) break;
-          await writer.write(chunk);
-        }
+        const finalEnc = push(new Uint8Array(0), libsodium.crypto_secretstream_xchacha20poly1305.TAG_FINAL);
+        const finalFlen = new Uint32Array([finalEnc.length]);
+        await writer.write(new Uint8Array(finalFlen.buffer)); await writer.write(finalEnc);
         await writer.close();
-        status.textContent = '✅ 복호화 완료 (TAR 다운로드)';
+        status.textContent = '✅ 암호화 완료'; prog.value = 100;
+      } catch (e) {
+        if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
+        else status.textContent = '❌ 오류: ' + e.message;
+      } finally {
+        startBtn.disabled = false; cancelBtn.classList.add('hidden'); abortController = null;
+        encFiles = []; updateFileList();
+        setTimeout(() => prog.classList.add('hidden'), 2000);
       }
-    } catch (e) {
-      if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
-      else status.textContent = '❌ 오류: ' + e.message;
-    } finally {
-      startBtn.disabled = false; cancelBtn.classList.add('hidden'); abortController = null;
-      setTimeout(() => prog.classList.add('hidden'), 2000);
     }
-  }
-});
+
+    async function startDecrypt() {
+      const vaultFile = document.getElementById('vaultFileDec').files[0]; if (!vaultFile) return alert('.uooo 파일 선택');
+      const pw = document.getElementById('decPassword').value; if (!pw) return alert('비밀번호 입력');
+      const preset = document.getElementById('argonPresetDec').value;
+      const mode = document.getElementById('authModeDec').value;
+      let second;
+      if (mode === 'keyfile') {
+        const f = document.getElementById('keyfileDec').files[0]; if (!f) return alert('키 파일 선택');
+        second = new Uint8Array(await f.arrayBuffer());
+      } else {
+        const m = document.getElementById('mnemonicDec').value.trim();
+        if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
+        second = m;
+      }
+
+      const status = document.getElementById('statusDec'), prog = document.getElementById('progressDec');
+      const cancelBtn = document.getElementById('cancelDecryptBtn'), startBtn = document.getElementById('decryptBtn');
+      status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
+      abortController = new AbortController(); const signal = abortController.signal;
+
+      try {
+        await ensureSodium();
+        const reader = new BufferedStreamReader(vaultFile.stream());
+        const magic = await reader.readExactly(4); if (decoder.decode(magic) !== 'UOOO') throw new Error('올바른 uooo 파일 아님');
+        const ver = await reader.readExactly(1); if (ver[0] !== 1) throw new Error('지원되지 않는 버전');
+        const salt = await reader.readExactly(16);
+        const wnonce = await reader.readExactly(libsodium.crypto_aead_xchacha20poly1305_ietf.NPUBBYTES);
+        const wlen = new Uint16Array((await reader.readExactly(2)).buffer)[0];
+        const wrapped = await reader.readExactly(wlen);
+        const sh = await reader.readExactly(libsodium.crypto_secretstream_xchacha20poly1305.HEADERBYTES);
+
+        const wkey = await deriveWrappingKey(pw, salt, second, preset);
+        const fek = await unwrapFEK(wrapped, wnonce, wkey); wkey.fill(0);
+        const ds = createDecStream(sh, fek); fek.fill(0);
+
+        const plainReadable = new ReadableStream({
+          async start(controller) {
+            try {
+              while (true) {
+                if (signal.aborted) { controller.error(new DOMException('Aborted','AbortError')); return; }
+                const lenBuf = await reader.readExactly(4);
+                const frameLen = new Uint32Array(lenBuf.buffer.slice(lenBuf.byteOffset, lenBuf.byteOffset+4))[0];
+                const cipher = await reader.readExactly(frameLen);
+                const plain = ds.pull(cipher);
+                if (plain && plain.length) controller.enqueue(plain);
+              }
+            } catch (e) {
+              if (e.message.includes('EOF')) controller.close();
+              else controller.error(e);
+            }
+          }
+        });
+
+        const archive = new ArchiveReader(new BufferedStreamReader(plainReadable));
+        status.textContent = '복호화 중...';
+        if (decOutputDirHandle) {
+          for await (const entry of archive.entries()) {
+            if (signal.aborted) break;
+            const parts = entry.fileName.split('/'); let cur = decOutputDirHandle;
+            for (let i=0; i<parts.length-1; i++) cur = await cur.getDirectoryHandle(parts[i], {create:true});
+            const fh = await cur.getFileHandle(parts[parts.length-1], {create:true});
+            const w = await fh.createWritable();
+            await entry.bodyStream.pipeTo(w);
+          }
+          status.textContent = '✅ 복호화 완료 (폴더 저장)';
+        } else {
+          const writer = streamSaver.createWriteStream('decrypted.tar').getWriter();
+          for await (const chunk of tarFromEntries(archive.entries())) {
+            if (signal.aborted) break;
+            await writer.write(chunk);
+          }
+          await writer.close();
+          status.textContent = '✅ 복호화 완료 (TAR 다운로드)';
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
+        else status.textContent = '❌ 오류: ' + e.message;
+      } finally {
+        startBtn.disabled = false; cancelBtn.classList.add('hidden'); abortController = null;
+        setTimeout(() => prog.classList.add('hidden'), 2000);
+      }
+    }
+
+    document.getElementById('encryptBtn').addEventListener('click', startEncrypt);
+    document.getElementById('cancelEncryptBtn').addEventListener('click', () => abortController?.abort());
+    document.getElementById('decryptBtn').addEventListener('click', startDecrypt);
+    document.getElementById('cancelDecryptBtn').addEventListener('click', () => abortController?.abort());
+  });
+}
+
+// DOM 로드 후 시작
+window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
