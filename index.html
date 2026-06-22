@@ -3,147 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-<title>uooo — 궁극의 파일 암호화</title>
-<script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.3/StreamSaver.min.js"></script>
+<title>uooo — 궁극의 파일 암호화 (모바일 분할 지원)</title>
 <style>
+  /* ... 스타일 동일 (프리미엄 글래스모피즘) ... */
   :root {
     --bg-deep: #05070a;
     --glass-bg: rgba(10, 15, 25, 0.6);
     --glass-border: rgba(0, 180, 216, 0.15);
-    --glass-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
-    --blur: 24px;
-    --text: #e0e8f0;
-    --text-secondary: #8899aa;
-    --accent: #00e5ff;
-    --accent-glow: rgba(0, 229, 255, 0.4);
-    --accent2: #c084fc;
-    --accent2-glow: rgba(192, 132, 252, 0.4);
-    --red: #ff4d6a;
-    --green: #2ecc71;
-    --yellow: #f0ad4e;
-    --radius: 16px;
-    --radius-sm: 10px;
-    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --text: #e0e8f0; --text-secondary: #8899aa;
+    --accent: #00e5ff; --accent2: #c084fc;
+    --red: #ff4d6a; --green: #2ecc71; --yellow: #f0ad4e;
+    --radius: 16px; --radius-sm: 10px;
+    --transition: 0.25s;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: radial-gradient(ellipse at 50% 0%, #0a1922 0%, var(--bg-deep) 70%);
     color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     padding: 2rem;
   }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
   .app-container {
-    width: 100%;
-    max-width: 850px;
+    width: 100%; max-width: 850px;
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
-    -webkit-backdrop-filter: blur(var(--blur));
-    border: 1px solid var(--glass-border);
-    border-radius: 32px;
-    padding: 2rem;
-    box-shadow: var(--glass-shadow), 0 0 80px -20px rgba(0,180,216,0.15);
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border); border-radius: 32px;
+    padding: 2rem; box-shadow: 0 25px 45px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 2rem;
   }
-  .app-header { text-align: center; }
-  .app-header h1 {
-    font-size: 3rem; font-weight: 700; letter-spacing: 6px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    margin-bottom: 0.25rem; filter: drop-shadow(0 0 15px var(--accent-glow));
-  }
-  .app-header p { color: var(--text-secondary); font-size: 0.9rem; letter-spacing: 1px; }
-  .tabs { display: flex; gap: 8px; padding: 6px; background: rgba(255,255,255,0.03); border-radius: 60px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
-  .tab { flex: 1; padding: 12px 24px; background: transparent; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; border-radius: 60px; font-size: 1rem; letter-spacing: 0.5px; transition: var(--transition); }
-  .tab.active { background: rgba(255,255,255,0.08); color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-  .tab.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 30px; height: 3px; background: var(--accent); border-radius: 3px; box-shadow: 0 0 15px var(--accent-glow); }
-  .panel { display: none; animation: fadeSlide 0.3s ease; }
+  .app-header h1 { font-size: 3rem; font-weight: 700; letter-spacing: 6px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .tabs { display: flex; gap: 8px; padding: 6px; background: rgba(255,255,255,0.03); border-radius: 60px; }
+  .tab { flex: 1; padding: 12px 24px; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; border-radius: 60px; cursor: pointer; }
+  .tab.active { background: rgba(255,255,255,0.08); color: white; }
+  .panel { display: none; }
   .panel.active { display: block; }
-  @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  label, .lbl { display: block; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
-  input, select, textarea { width: 100%; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); color: white; font-size: 1rem; font-family: inherit; outline: none; transition: var(--transition); }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 20px -5px var(--accent-glow); }
-  input[type="checkbox"] { width: auto; margin-right: 0.5rem; accent-color: var(--accent); }
-  .btn { background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(192,132,252,0.2)); border: 1px solid rgba(255,255,255,0.15); color: white; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); padding: 0.75rem 1rem; transition: var(--transition); }
-  .btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(0,229,255,0.4), rgba(192,132,252,0.4)); border-color: rgba(255,255,255,0.4); box-shadow: 0 8px 25px -5px var(--accent-glow); transform: translateY(-1px); }
-  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; border: none; font-weight: 700; }
-  .btn.primary:hover { box-shadow: 0 15px 35px -5px var(--accent2-glow); }
+  label { font-weight: 600; margin-top: 1.5rem; display: block; }
+  input, select, textarea { width: 100%; padding: 0.85rem; border-radius: var(--radius-sm); background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; margin-top: 0.4rem; }
+  .btn { background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(192,132,252,0.2)); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: black; }
   .btn.danger { background: rgba(255,77,106,0.2); border-color: var(--red); color: var(--red); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.5); }
-  .row { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
-  .row > * { flex: 1 1 auto; }
-  .strength-bar { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-top: 6px; overflow: hidden; }
-  .strength-fill { height: 100%; width: 0%; transition: width 0.4s ease, background 0.4s ease; border-radius: 4px; }
-  .drop-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: var(--radius); padding: 2rem; text-align: center; cursor: pointer; transition: var(--transition); background: rgba(255,255,255,0.02); margin-top: 0.5rem; }
-  .drop-zone.drag-over { border-color: var(--accent); background: rgba(0,229,255,0.05); box-shadow: 0 0 30px var(--accent-glow); }
-  .filelist { list-style: none; max-height: 200px; overflow-y: auto; margin-top: 0.5rem; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); padding: 0.8rem; }
-  .filelist li { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
-  .size { color: var(--text-secondary); font-size: 0.8rem; }
-  progress { width: 100%; margin: 1.5rem 0; height: 8px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.1); }
-  progress::-webkit-progress-bar { background: rgba(255,255,255,0.1); border-radius: 8px; }
-  progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 8px; box-shadow: 0 0 15px var(--accent-glow); }
   .hidden { display: none !important; }
   .note { font-size: 0.8rem; color: var(--text-secondary); }
-  .status { min-height: 1.5rem; margin-top: 0.5rem; font-weight: 500; }
-  .loading-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 999;
-  }
-  .loading-box {
-    background: var(--glass-bg); backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border); border-radius: 24px;
-    padding: 3rem; text-align: center;
-    box-shadow: 0 0 60px var(--accent-glow);
-  }
-  .spinner {
-    width: 50px; height: 50px;
-    border: 3px solid rgba(255,255,255,0.1);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 1.5rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .row { display: flex; gap: 0.8rem; }
+  progress { width: 100%; margin: 1.5rem 0; height: 8px; accent-color: var(--accent); }
   @media (max-width: 600px) { body { padding: 1rem; } .app-container { padding: 1.5rem; } }
 </style>
 </head>
 <body>
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-box" id="loadingBox">
-    <div class="spinner"></div>
-    <p style="color:var(--text); font-weight:600;">암호화 엔진 준비 중...</p>
-    <p class="note" style="margin-top:0.5rem;">브라우저 내장 암호화 사용 · 외부 라이브러리 없음</p>
-  </div>
-</div>
 
 <div class="app-container">
   <div class="app-header">
     <h1>UOOO</h1>
-    <p>AES‑256‑GCM · PBKDF2 · 이중 인증 · 무제한 스트리밍</p>
+    <p>AES‑256‑GCM · PBKDF2 · 이중 인증 · 모바일 분할 지원</p>
   </div>
   <div class="tabs">
     <button class="tab active" data-tab="encrypt">🔒 암호화</button>
     <button class="tab" data-tab="decrypt">🔓 복호화</button>
   </div>
 
+  <!-- 암호화 패널 -->
   <div class="panel active" id="panelEncrypt">
-    <label class="lbl">🔐 비밀번호</label>
-    <input type="password" id="encPassword" placeholder="비밀번호 입력 (강력 추천)" autocomplete="off">
-    <div class="row" style="margin-top:8px"><label style="font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" id="showEncPw"> 표시</label></div>
+    <label>🔐 비밀번호</label>
+    <input type="password" id="encPassword" placeholder="비밀번호 입력" autocomplete="off">
+    <div class="row"><label style="font-weight:400"><input type="checkbox" id="showEncPw"> 표시</label></div>
     <div class="strength-bar"><div class="strength-fill" id="pwStrengthEnc"></div></div>
     <div class="note" id="pwStrengthTextEnc"></div>
 
-    <label class="lbl">⚡ PBKDF2 강도</label>
+    <label>⚡ PBKDF2 강도</label>
     <select id="argonPresetEnc">
       <option value="moderate">보통 (100,000회)</option>
       <option value="high">높음 (300,000회)</option>
@@ -151,21 +79,21 @@
       <option value="ultimate">궁극 (1,000,000회)</option>
     </select>
 
-    <label class="lbl">🗝️ 이중 인증 방식</label>
+    <label>🗝️ 이중 인증 방식</label>
     <select id="authModeEnc">
       <option value="keyfile">키 파일 (512B 이상)</option>
       <option value="mnemonic">24단어 복구 구문</option>
     </select>
-    <div id="keyfileBoxEnc"><input type="file" id="keyfileEnc" accept=".key,.bin,.rnd"><div class="note" id="keyfileInfoEnc"></div></div>
-    <div id="mnemonicBoxEnc" class="hidden"><textarea id="mnemonicEnc" rows="2" placeholder="24개의 영어 단어 입력"></textarea></div>
-    <div class="row" style="margin-top:0.8rem">
+    <div id="keyfileBoxEnc"><input type="file" id="keyfileEnc"><div class="note" id="keyfileInfoEnc"></div></div>
+    <div id="mnemonicBoxEnc" class="hidden"><textarea id="mnemonicEnc" rows="2" placeholder="24개 단어 입력"></textarea></div>
+    <div class="row">
       <button class="btn" id="genKeyfileEnc">🛡️ 새 키 파일 생성</button>
       <button class="btn" id="genMnemonicEnc">🪄 새 복구 구문 생성</button>
     </div>
 
-    <label class="lbl">📁 보호할 파일 / 폴더</label>
-    <div class="drop-zone" id="dropZoneEnc"><p>📂 파일 또는 폴더를 여기에 끌어다 놓으세요</p><p style="font-size:0.8rem;color:var(--text-secondary)">또는 아래 버튼을 사용하세요</p></div>
-    <div class="row" style="margin-top:0.5rem">
+    <label>📁 보호할 파일 / 폴더</label>
+    <div class="drop-zone" id="dropZoneEnc"><p>📂 파일 또는 폴더를 끌어다 놓으세요</p></div>
+    <div class="row">
       <button class="btn" id="addFilesEnc">➕ 파일 추가</button>
       <button class="btn" id="addFolderEnc">📁 폴더 추가</button>
       <button class="btn" id="clearFilesEnc">🗑 목록 지우기</button>
@@ -173,30 +101,40 @@
     <ul class="filelist" id="fileListEnc"></ul>
     <div class="note" id="totalSizeEnc"></div>
 
+    <!-- 분할 모드 옵션 -->
+    <label>🧩 분할 저장 (모바일 대용량 대응)</label>
+    <div class="row" style="align-items:center">
+      <input type="checkbox" id="splitModeEnc" style="width:auto">
+      <label for="splitModeEnc" style="margin-top:0;font-weight:400">최대 파트 크기:</label>
+      <input type="number" id="splitSizeEnc" value="500" min="10" max="4000" style="width:80px"> MB
+    </div>
+    <div class="note">분할 저장 시 각 파트가 개별 다운로드됩니다.</div>
+
     <button class="btn primary" id="encryptBtn" style="margin-top:1.5rem; width:100%">🔒 암호화 시작</button>
     <button class="btn danger hidden" id="cancelEncryptBtn" style="margin-top:0.5rem; width:100%">⏹️ 중단</button>
     <progress id="progressEnc" value="0" max="100" class="hidden"></progress>
     <div class="status" id="statusEnc"></div>
   </div>
 
+  <!-- 복호화 패널 -->
   <div class="panel" id="panelDecrypt">
-    <label class="lbl">📂 암호화된 .uooo 파일</label>
-    <input type="file" id="vaultFileDec" accept=".uooo">
-    <label class="lbl">🔐 비밀번호</label>
+    <label>📂 암호화된 .uooo 파일 (또는 파트)</label>
+    <input type="file" id="vaultFileDec" accept=".uooo,.part*" multiple>
+    <div class="note" id="partInfoDec">여러 파트를 한 번에 선택해주세요 (순서대로).</div>
+    <label>🔐 비밀번호</label>
     <input type="password" id="decPassword" placeholder="비밀번호 입력" autocomplete="off">
-    <div class="row" style="margin-top:8px"><label style="font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" id="showDecPw"> 표시</label></div>
-    <label class="lbl">⚡ PBKDF2 강도</label>
+    <div class="row"><label style="font-weight:400"><input type="checkbox" id="showDecPw"> 표시</label></div>
+    <label>⚡ PBKDF2 강도</label>
     <select id="argonPresetDec">
-      <option value="moderate">보통 (100,000)</option><option value="high">높음 (300,000)</option>
-      <option value="extreme" selected>극한 (600,000)</option><option value="ultimate">궁극 (1,000,000)</option>
+      <option value="moderate">보통</option><option value="high">높음</option>
+      <option value="extreme" selected>극한</option><option value="ultimate">궁극</option>
     </select>
-    <label class="lbl">🗝️ 이중 인증 방식</label>
-    <select id="authModeDec"><option value="keyfile">키 파일</option><option value="mnemonic">24단어 복구 구문</option></select>
+    <label>🗝️ 이중 인증 방식</label>
+    <select id="authModeDec"><option value="keyfile">키 파일</option><option value="mnemonic">복구 구문</option></select>
     <div id="keyfileBoxDec"><input type="file" id="keyfileDec"></div>
-    <div id="mnemonicBoxDec" class="hidden"><textarea id="mnemonicDec" rows="2" placeholder="24개 단어 입력"></textarea></div>
-    <label class="lbl">📂 저장 위치</label>
+    <div id="mnemonicBoxDec" class="hidden"><textarea id="mnemonicDec" rows="2"></textarea></div>
+    <label>📂 저장 위치</label>
     <div class="row"><button class="btn" id="selectOutputDirDec">📁 폴더 선택</button><span id="outputDirDecPath" class="note"></span></div>
-    <div class="note">폴더를 선택하지 않으면 TAR 파일로 다운로드됩니다.</div>
     <button class="btn primary" id="decryptBtn" style="margin-top:1.5rem; width:100%">🔓 복호화 시작</button>
     <button class="btn danger hidden" id="cancelDecryptBtn" style="margin-top:0.5rem; width:100%">⏹️ 중단</button>
     <progress id="progressDec" value="0" max="100" class="hidden"></progress>
@@ -205,194 +143,52 @@
 </div>
 
 <script>
+// ==================== 유틸 및 암호화 코어 (동일) ====================
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 function concat(...arrs) { let len = arrs.reduce((a,b)=>a+b.length,0), r = new Uint8Array(len), off=0; for(let a of arrs){ r.set(a,off); off+=a.length; } return r; }
 function formatSize(b) { if(!b) return '0 B'; const k=1024, s=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(b)/Math.log(k)); return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]; }
 function shannonEntropy(b) { if(!b||!b.length) return 0; const c=new Array(256).fill(0); for(let x of b)c[x]++; let e=0; for(let v of c)if(v){let p=v/b.length; e-=p*Math.log2(p);} return e; }
-
 class BufferedStreamReader {
   constructor(s) { this.reader = s.getReader(); this.buffer = new Uint8Array(0); }
   async readExactly(n) { while(this.buffer.length<n){ let{done,value}=await this.reader.read(); if(done) throw new Error('EOF'); this.buffer=concat(this.buffer,value); } const r=this.buffer.slice(0,n); this.buffer=this.buffer.slice(n); return r; }
   async readSome() { if(this.buffer.length){ const r=this.buffer; this.buffer=new Uint8Array(0); return r; } const{done,value}=await this.reader.read(); return done?null:value; }
 }
-
-// BIP39 (2048 words)
 const WORDLIST = ["abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance","advice","aerobic","affair","afford","afraid","after","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm","album","alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter","always","amateur","amazing","among","amount","amused","analyst","anchor","ancient","anger","angle","angry","animal","ankle","announce","annual","another","answer","antenna","antique","anxiety","any","apart","apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor","army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect","assault","asset","assist","assume","asthma","athlete","atom","attack","attend","attitude","attract","auction","audit","august","aunt","author","auto","autumn","average","avocado","avoid","awake","aware","away","awesome","awful","awkward","axis","baby","bachelor","bacon","badge","bag","balance","balcony","ball","bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle","beach","bean","beauty","because","become","beef","before","begin","behave","behind","believe","below","belt","bench","benefit","best","betray","better","between","beyond","bicycle","bid","bike","bind","biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood","blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","bonus","book","boost","border","boring","borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brass","brave","bread","breeze","brick","bridge","brief","bright","bring","brisk","broccoli","broken","bronze","broom","brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb","bulk","bullet","bundle","bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin","cable","cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon","canoe","canvas","canyon","capable","capital","captain","car","carbon","card","cargo","carpet","carry","cart","case","cash","casino","castle","casual","cat","catalog","catch","category","cattle","caught","cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk","champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry","chest","chicken","chief","child","chimney","choice","choose","chronic","chuckle","chunk","churn","cigar","cinnamon","circle","citizen","city","civil","claim","clap","clarify","claw","clay","clean","clerk","clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud","clown","club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color","column","combine","come","comfort","comic","common","company","concert","conduct","confirm","congress","connect","consider","control","convince","cook","cool","copper","copy","coral","core","corn","correct","cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle","craft","cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp","critic","crop","cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry","crystal","cube","culture","cup","cupboard","curious","current","curtain","curve","cushion","custom","cute","cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn","day","deal","debate","debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy","degree","delay","deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth","deputy","derive","describe","desert","design","desk","despair","destroy","detail","detect","develop","device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital","dignity","dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder","display","distance","divert","divide","divorce","dizzy","doctor","document","dog","doll","dolphin","domain","donate","donkey","donor","door","dose","double","dove","draft","dragon","drama","drastic","draw","dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb","dune","during","dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy","echo","ecology","economy","edge","edit","educate","effort","egg","eight","either","elbow","elder","electric","elegant","element","elephant","elevator","elite","else","embark","embody","embrace","emerge","emotion","employ","empower","empty","enable","enact","end","endless","endorse","enemy","energy","enforce","engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry","envelope","episode","equal","equip","era","erase","erode","erosion","error","erupt","escape","essay","essence","estate","eternal","ethics","evidence","evil","evoke","evolve","exact","example","excess","exchange","excite","exclude","excuse","execute","exercise","exhaust","exhibit","exile","exist","exit","exotic","expand","expect","expire","explain","expose","express","extend","extra","eye","eyebrow","fabric","face","faculty","fade","faint","faith","fall","false","fame","family","famous","fan","fancy","fantasy","farm","fashion","fat","fatal","father","fatigue","fault","favorite","feature","february","federal","fee","feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field","figure","file","film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit","fitness","fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor","flower","fluid","flush","fly","foam","focus","fog","foil","fold","follow","food","foot","force","forest","forget","fork","fortune","forum","forward","fossil","foster","found","fox","fragile","frame","frequent","fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel","fun","funny","furnace","fury","future","gadget","gain","galaxy","gallery","game","gap","garage","garbage","garden","garlic","garment","gas","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine","gesture","ghost","giant","gift","giggle","ginger","giraffe","girl","give","glad","glance","glare","glass","glide","glimpse","globe","gloom","glory","glove","glow","glue","goat","goddess","gold","good","goose","gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grass","gravity","great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guess","guide","guilt","guitar","gun","gym","habit","hair","half","hammer","hamster","hand","happy","harbor","hard","harsh","harvest","hat","have","hawk","hazard","head","health","heart","heavy","hedgehog","height","hello","helmet","help","hen","hero","hidden","high","hill","hint","hip","hire","history","hobby","hockey","hold","hole","holiday","hollow","home","honey","hood","hope","horn","horror","horse","hospital","host","hotel","hour","hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband","hybrid","ice","icon","idea","identify","idle","ignore","ill","illegal","illness","image","imitate","immense","immune","impact","impose","improve","impulse","inch","include","income","increase","index","indicate","indoor","industry","infant","inflict","inform","inhale","inherit","initial","inject","injury","inmate","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact","interest","into","invest","invite","involve","iron","island","isolate","issue","item","ivory","jacket","jaguar","jar","jazz","jealous","jeans","jelly","jewel","job","join","joke","journey","joy","judge","juice","jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup","key","kick","kid","kidney","kind","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know","lab","label","labor","ladder","lady","lake","lamp","language","laptop","large","later","latin","laugh","laundry","lava","law","lawn","lawsuit","layer","lazy","leader","leaf","learn","leave","lecture","left","leg","legal","legend","leisure","lemon","lend","length","lens","leopard","lesson","letter","level","liar","liberty","library","license","life","lift","light","like","limb","limit","link","lion","liquid","list","little","live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop","lottery","loud","lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyrics","machine","mad","magic","magnet","maid","mail","main","major","make","mammal","man","manage","mandate","mango","mansion","manual","maple","marble","march","margin","marine","market","marriage","mask","mass","master","match","material","math","matrix","matter","maximum","maze","meadow","mean","measure","meat","mechanic","medal","media","melody","melt","member","memory","mention","menu","mercy","merge","merit","merry","mesh","message","metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle","mirror","misery","miss","mistake","mix","mixed","mixture","mobile","model","modify","mom","moment","monitor","monkey","monster","month","moon","moral","more","morning","mosquito","mother","motion","motor","mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music","must","mutual","myself","mystery","myth","naive","name","napkin","narrow","nasty","nation","nature","near","neck","need","negative","neglect","neither","nephew","nerve","nest","net","network","neutral","never","news","next","nice","night","noble","noise","nominee","noodle","normal","north","nose","notable","note","nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey","object","oblige","obscure","observe","obtain","obvious","occur","ocean","october","odor","off","offer","office","often","oil","okay","old","olive","olympic","omit","once","one","onion","online","only","open","opera","opinion","oppose","option","orange","orbit","orchard","order","ordinary","organ","orient","original","orphan","ostrich","other","outdoor","outer","output","outside","oval","oven","over","own","owner","oxygen","oyster","ozone","pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper","parade","parent","park","parrot","party","pass","patch","path","patient","patrol","pattern","pause","pave","payment","peace","peanut","pear","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person","pet","phone","photo","phrase","physical","piano","picnic","picture","piece","pig","pigeon","pill","pilot","pink","pioneer","pipe","pistol","pitch","pizza","place","planet","plastic","plate","play","please","pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony","pool","popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice","praise","predict","prefer","prepare","present","pretty","prevent","price","pride","primary","print","priority","prison","private","prize","problem","process","produce","profit","program","project","promote","proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","pulse","pumpkin","punch","pupil","puppy","purchase","purity","purpose","purse","push","put","puzzle","pyramid","quality","quantum","quarter","question","quick","quit","quiz","quote","rabbit","raccoon","race","rack","radar","radio","rail","rain","raise","rally","ramp","ranch","random","range","rapid","rare","rate","rather","raven","raw","razor","ready","real","reason","rebel","rebuild","recall","receive","recipe","record","recycle","reduce","reflect","reform","refuse","region","regret","regular","reject","relax","release","relief","rely","remain","remember","remind","remove","render","renew","rent","reopen","repair","repeat","replace","report","require","rescue","resemble","resist","resource","response","result","retire","retreat","return","reunion","reveal","review","reward","rhythm","rib","ribbon","rice","rich","ride","ridge","rifle","right","rigid","ring","riot","ripple","risk","ritual","rival","river","road","roast","robot","robust","rocket","romance","roof","rookie","room","rose","rotate","rough","round","route","royal","rubber","rude","rug","rule","run","runway","rural","sad","saddle","sadness","safe","sail","salad","salmon","salon","salt","salute","same","sample","sand","satisfy","satoshi","sauce","sausage","save","say","scale","scan","scare","scatter","scene","scheme","school","science","scissors","scorpion","scout","scrap","screen","script","scrub","sea","search","season","seat","second","secret","section","security","seed","seek","segment","select","sell","seminar","senior","sense","sentence","series","service","session","settle","setup","seven","shadow","shaft","shallow","share","shed","shell","sheriff","shield","shift","shine","ship","shiver","shock","shoe","shoot","shop","short","shoulder","shove","shrimp","shrug","shuffle","shy","sibling","sick","side","siege","sight","sign","silent","silk","silly","silver","similar","simple","since","sing","siren","sister","situate","six","size","skate","sketch","ski","skill","skin","skirt","skull","slab","slam","sleep","slender","slice","slide","slight","slim","slogan","slot","slow","slush","small","smart","smile","smoke","smooth","snack","snake","snap","sniff","snow","soap","soccer","social","sock","soda","soft","solar","soldier","solid","solution","solve","someone","song","soon","sorry","sort","soul","sound","soup","source","south","space","spare","spatial","spawn","speak","special","speed","spell","spend","sphere","spice","spider","spike","spin","spirit","split","spoil","sponsor","spoon","sport","spot","spray","spread","spring","spy","square","squeeze","squirrel","stable","stadium","staff","stage","stairs","stamp","stand","start","state","stay","steak","steel","stem","step","stereo","stick","still","sting","stock","stomach","stone","stool","story","stove","strategy","street","strike","strong","struggle","student","stuff","stumble","style","subject","submit","subway","success","such","sudden","suffer","sugar","suggest","suit","summer","sun","sunny","sunset","super","supply","supreme","sure","surface","surge","surprise","surround","survey","suspect","sustain","swallow","swamp","swap","swarm","swear","sweet","swift","swim","swing","switch","sword","symbol","symptom","syrup","system","table","tackle","tag","tail","talent","talk","tank","tape","target","task","taste","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test","text","thank","that","theme","then","theory","there","they","thing","this","thought","three","thrive","throw","thumb","thunder","ticket","tide","tiger","tilt","timber","time","tiny","tip","tired","tissue","title","toast","tobacco","today","toddler","toe","together","toilet","token","tomato","tomorrow","tone","tongue","tonight","tool","tooth","top","topic","topple","torch","tornado","tortoise","toss","total","tourist","toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap","trash","travel","tray","treat","tree","trend","trial","tribe","trick","trigger","trim","trip","trophy","trouble","truck","true","truly","trumpet","trust","truth","try","tube","tuition","tumble","tuna","tunnel","turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical","ugly","umbrella","unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","unit","universe","unknown","unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset","urban","urge","usage","use","used","useful","useless","usual","utility","vacant","vacuum","vague","valid","valley","valve","van","vanish","vapor","various","vast","vault","vehicle","velvet","vendor","venture","venue","verb","verify","version","very","vessel","veteran","viable","vibrant","vicious","victory","video","view","village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal","voice","void","volcano","volume","vote","voyage","wage","wagon","wait","walk","wall","walnut","want","warfare","warm","warrior","wash","wasp","waste","water","wave","way","wealth","weapon","wear","weasel","weather","web","wedding","weekend","weird","welcome","west","wet","whale","what","wheat","wheel","when","where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner","winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","work","world","worry","worth","wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"];
 
 const PBKDF2_ITERATIONS = { moderate: 100000, high: 300000, extreme: 600000, ultimate: 1000000 };
 
-async function aesGcmEncrypt(key, plaintext, nonce, aad) {
-  const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['encrypt']);
-  return new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, plaintext));
-}
-async function aesGcmDecrypt(key, ciphertext, nonce, aad) {
-  const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['decrypt']);
-  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, ciphertext));
-}
-async function hkdf(ikm, salt, info, length) {
-  const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']);
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: encoder.encode(info) }, key, length * 8));
-}
-async function derivePasswordKey(password, salt, iterations) {
-  const key = await crypto.subtle.importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256));
-}
-async function hmacSha256(keyData, message) {
-  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  return new Uint8Array(await crypto.subtle.sign('HMAC', key, message));
-}
+async function aesGcmEncrypt(key, plaintext, nonce, aad) { const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['encrypt']); return new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, plaintext)); }
+async function aesGcmDecrypt(key, ciphertext, nonce, aad) { const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['decrypt']); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, ciphertext)); }
+async function hkdf(ikm, salt, info, length) { const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']); return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: encoder.encode(info) }, key, length * 8)); }
+async function derivePasswordKey(password, salt, iterations) { const key = await crypto.subtle.importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']); return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256)); }
+async function hmacSha256(keyData, message) { const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return new Uint8Array(await crypto.subtle.sign('HMAC', key, message)); }
 async function keyfileToKey(keyfileBuf, salt) { return await hmacSha256(keyfileBuf, salt); }
-async function mnemonicToSeed(mnemonic) {
-  const mnemonicBuffer = encoder.encode(mnemonic.normalize('NFKD'));
-  const salt = encoder.encode('mnemonic');
-  const key = await crypto.subtle.importKey('raw', mnemonicBuffer, { name: 'PBKDF2' }, false, ['deriveBits']);
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 2048, hash: 'SHA-512' }, key, 512));
-}
-async function generateMnemonic() {
-  const entropy = crypto.getRandomValues(new Uint8Array(32));
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', entropy));
-  let bits = '';
-  for (let b of entropy) bits += b.toString(2).padStart(8, '0');
-  bits += hash[0].toString(2).padStart(8, '0').substring(0, 8);
-  const words = [];
-  for (let i = 0; i < bits.length; i += 11) words.push(WORDLIST[parseInt(bits.substring(i, i + 11), 2)]);
-  return words.join(' ');
-}
-async function validateMnemonic(mnemonic) {
-  const words = mnemonic.trim().split(/\s+/);
-  if (words.length !== 24) return false;
-  let bits = '';
-  for (let w of words) {
-    const idx = WORDLIST.indexOf(w);
-    if (idx === -1) return false;
-    bits += idx.toString(2).padStart(11, '0');
-  }
-  const entropyBits = bits.substring(0, 256), checksumBits = bits.substring(256);
-  const entropy = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) entropy[i] = parseInt(entropyBits.substr(i * 8, 8), 2);
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', entropy));
-  const expected = hash[0].toString(2).padStart(8, '0').substring(0, 8);
-  return checksumBits === expected;
-}
-async function deriveWrappingKey(password, salt, secondFactor, preset) {
-  const iterations = PBKDF2_ITERATIONS[preset] || 600000;
-  const pwk = await derivePasswordKey(password, salt, iterations);
-  let k2;
-  if (secondFactor instanceof Uint8Array) k2 = await keyfileToKey(secondFactor, salt);
-  else { const seed = await mnemonicToSeed(secondFactor); k2 = seed.slice(0, 32); }
-  const ikm = concat(pwk, k2); pwk.fill(0); k2.fill(0);
-  const wrappingKey = await hkdf(ikm, salt, 'uooo-wrap-v1', 32); ikm.fill(0);
-  return wrappingKey;
-}
-async function wrapFEK(fek, wkey) {
-  const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const wrapped = await aesGcmEncrypt(wkey, fek, nonce, new Uint8Array(0));
-  return { nonce, wrapped };
-}
-async function unwrapFEK(wrapped, nonce, wkey) {
-  return await aesGcmDecrypt(wkey, wrapped, nonce, new Uint8Array(0));
-}
-function getNonceForChunk(baseNonce, chunkIndex) {
-  const nonce = new Uint8Array(12);
-  nonce.set(baseNonce, 0);
-  new DataView(nonce.buffer).setUint32(8, chunkIndex, false);
-  return nonce;
-}
-async function encryptChunk(fek, baseNonce, chunkIndex, aad, plainChunk) {
-  return await aesGcmEncrypt(fek, plainChunk, getNonceForChunk(baseNonce, chunkIndex), aad);
-}
-async function decryptChunk(fek, baseNonce, chunkIndex, aad, cipherChunk) {
-  return await aesGcmDecrypt(fek, cipherChunk, getNonceForChunk(baseNonce, chunkIndex), aad);
-}
+async function mnemonicToSeed(mnemonic) { const mnemonicBuffer = encoder.encode(mnemonic.normalize('NFKD')); const salt = encoder.encode('mnemonic'); const key = await crypto.subtle.importKey('raw', mnemonicBuffer, { name: 'PBKDF2' }, false, ['deriveBits']); return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 2048, hash: 'SHA-512' }, key, 512)); }
+async function generateMnemonic() { const entropy = crypto.getRandomValues(new Uint8Array(32)); const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', entropy)); let bits = ''; for (let b of entropy) bits += b.toString(2).padStart(8, '0'); bits += hash[0].toString(2).padStart(8, '0').substring(0, 8); const words = []; for (let i = 0; i < bits.length; i += 11) words.push(WORDLIST[parseInt(bits.substring(i, i + 11), 2)]); return words.join(' '); }
+async function validateMnemonic(mnemonic) { const words = mnemonic.trim().split(/\s+/); if (words.length !== 24) return false; let bits = ''; for (let w of words) { const idx = WORDLIST.indexOf(w); if (idx === -1) return false; bits += idx.toString(2).padStart(11, '0'); } const entropyBits = bits.substring(0, 256), checksumBits = bits.substring(256); const entropy = new Uint8Array(32); for (let i = 0; i < 32; i++) entropy[i] = parseInt(entropyBits.substr(i * 8, 8), 2); const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', entropy)); const expected = hash[0].toString(2).padStart(8, '0').substring(0, 8); return checksumBits === expected; }
+async function deriveWrappingKey(password, salt, secondFactor, preset) { const iterations = PBKDF2_ITERATIONS[preset] || 600000; const pwk = await derivePasswordKey(password, salt, iterations); let k2; if (secondFactor instanceof Uint8Array) k2 = await keyfileToKey(secondFactor, salt); else { const seed = await mnemonicToSeed(secondFactor); k2 = seed.slice(0, 32); } const ikm = concat(pwk, k2); pwk.fill(0); k2.fill(0); const wrappingKey = await hkdf(ikm, salt, 'uooo-wrap-v1', 32); ikm.fill(0); return wrappingKey; }
+async function wrapFEK(fek, wkey) { const nonce = crypto.getRandomValues(new Uint8Array(12)); const wrapped = await aesGcmEncrypt(wkey, fek, nonce, new Uint8Array(0)); return { nonce, wrapped }; }
+async function unwrapFEK(wrapped, nonce, wkey) { return await aesGcmDecrypt(wkey, wrapped, nonce, new Uint8Array(0)); }
+function getNonceForChunk(baseNonce, chunkIndex) { const nonce = new Uint8Array(12); nonce.set(baseNonce, 0); new DataView(nonce.buffer).setUint32(8, chunkIndex, false); return nonce; }
+async function encryptChunk(fek, baseNonce, chunkIndex, aad, plainChunk) { return await aesGcmEncrypt(fek, plainChunk, getNonceForChunk(baseNonce, chunkIndex), aad); }
+async function decryptChunk(fek, baseNonce, chunkIndex, aad, cipherChunk) { return await aesGcmDecrypt(fek, cipherChunk, getNonceForChunk(baseNonce, chunkIndex), aad); }
 
 const CHUNK_SIZE = 256 * 1024;
-async function* archiveStream(files) {
-  for (let f of files) {
-    const nameBytes = encoder.encode(f.path);
-    yield new Uint8Array(new Uint16Array([nameBytes.length]).buffer);
-    yield nameBytes;
-    const sizeBuf = new Uint8Array(8);
-    new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(f.file.size), true);
-    yield sizeBuf;
-    const reader = f.file.stream().getReader();
-    while (true) { const { done, value } = await reader.read(); if (done) break; yield value; }
-  }
-  yield new Uint8Array(new Uint16Array([0]).buffer);
-}
-function tarHeader(filename, size) {
-  const buf = new Uint8Array(512);
-  const name = encoder.encode(filename);
-  buf.set(name.slice(0, 100), 0);
-  buf.set(encoder.encode('0000600\0'), 100);
-  buf.set(encoder.encode('0000000\0'), 108); buf.set(encoder.encode('0000000\0'), 116);
-  buf.set(encoder.encode(size.toString(8).padStart(11, '0') + '\0'), 124);
-  buf.set(encoder.encode('00000000000\0'), 136); buf[156] = 0x30;
-  let sum = 8 * 32;
-  for (let i = 0; i < 148; i++) sum += buf[i];
-  for (let i = 156; i < 512; i++) sum += buf[i];
-  buf.set(encoder.encode(sum.toString(8).padStart(6, '0') + '\0 '), 148);
-  return buf;
-}
-async function* tarFromEntries(entries) {
-  for await (let e of entries) {
-    yield tarHeader(e.fileName, e.fileSize);
-    const reader = e.bodyStream.getReader();
-    let remaining = e.fileSize;
-    while (remaining > 0) { const { done, value } = await reader.read(); if (done) break; yield value; remaining -= value.length; }
-    const pad = (512 - (e.fileSize % 512)) % 512;
-    if (pad) yield new Uint8Array(pad);
-  }
-  yield new Uint8Array(1024);
-}
-class ArchiveReader {
-  constructor(reader) { this.reader = reader; }
-  async *entries() {
-    while (true) {
-      const nameLen = new Uint16Array((await this.reader.readExactly(2)).buffer.slice(0,2))[0];
-      if (nameLen === 0) break;
-      const nameBytes = await this.reader.readExactly(nameLen);
-      const fileName = decoder.decode(nameBytes);
-      const sizeBuf = await this.reader.readExactly(8);
-      const fileSize = Number(new DataView(sizeBuf.buffer.slice(0,8)).getBigUint64(0, true));
-      const self = this;
-      const bodyStream = new ReadableStream({
-        async start(controller) {
-          let remaining = fileSize;
-          while (remaining > 0) {
-            const chunk = await self.reader.readSome();
-            if (!chunk) { controller.error(new Error('파일 데이터 부족')); return; }
-            if (chunk.length <= remaining) { controller.enqueue(chunk); remaining -= chunk.length; }
-            else { controller.enqueue(chunk.slice(0, remaining)); self.reader.buffer = concat(chunk.slice(remaining), self.reader.buffer); remaining = 0; }
-          }
-          controller.close();
-        }
-      });
-      yield { fileName, fileSize, bodyStream };
-    }
-  }
-}
+async function* archiveStream(files) { for (let f of files) { const nameBytes = encoder.encode(f.path); yield new Uint8Array(new Uint16Array([nameBytes.length]).buffer); yield nameBytes; const sizeBuf = new Uint8Array(8); new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(f.file.size), true); yield sizeBuf; const reader = f.file.stream().getReader(); while (true) { const { done, value } = await reader.read(); if (done) break; yield value; } } yield new Uint8Array(new Uint16Array([0]).buffer); }
+function tarHeader(filename, size) { const buf = new Uint8Array(512); const name = encoder.encode(filename); buf.set(name.slice(0, 100), 0); buf.set(encoder.encode('0000600\0'), 100); buf.set(encoder.encode('0000000\0'), 108); buf.set(encoder.encode('0000000\0'), 116); buf.set(encoder.encode(size.toString(8).padStart(11, '0') + '\0'), 124); buf.set(encoder.encode('00000000000\0'), 136); buf[156] = 0x30; let sum = 8 * 32; for (let i = 0; i < 148; i++) sum += buf[i]; for (let i = 156; i < 512; i++) sum += buf[i]; buf.set(encoder.encode(sum.toString(8).padStart(6, '0') + '\0 '), 148); return buf; }
+async function* tarFromEntries(entries) { for await (let e of entries) { yield tarHeader(e.fileName, e.fileSize); const reader = e.bodyStream.getReader(); let remaining = e.fileSize; while (remaining > 0) { const { done, value } = await reader.read(); if (done) break; yield value; remaining -= value.length; } const pad = (512 - (e.fileSize % 512)) % 512; if (pad) yield new Uint8Array(pad); } yield new Uint8Array(1024); }
+class ArchiveReader { constructor(reader) { this.reader = reader; } async *entries() { while (true) { const nameLen = new Uint16Array((await this.reader.readExactly(2)).buffer.slice(0,2))[0]; if (nameLen === 0) break; const nameBytes = await this.reader.readExactly(nameLen); const fileName = decoder.decode(nameBytes); const sizeBuf = await this.reader.readExactly(8); const fileSize = Number(new DataView(sizeBuf.buffer.slice(0,8)).getBigUint64(0, true)); const self = this; const bodyStream = new ReadableStream({ async start(controller) { let remaining = fileSize; while (remaining > 0) { const chunk = await self.reader.readSome(); if (!chunk) { controller.error(new Error('파일 데이터 부족')); return; } if (chunk.length <= remaining) { controller.enqueue(chunk); remaining -= chunk.length; } else { controller.enqueue(chunk.slice(0, remaining)); self.reader.buffer = concat(chunk.slice(remaining), self.reader.buffer); remaining = 0; } } controller.close(); } }); yield { fileName, fileSize, bodyStream }; } } }
 
+// ==================== UI 로직 ====================
 let encFiles = [], decOutputDirHandle = null, abortController = null;
-function updateFileList() {
-  const ul = document.getElementById('fileListEnc');
-  ul.innerHTML = encFiles.map(f => `<li><span>${f.path}</span><span class="size">${formatSize(f.file.size)}</span></li>`).join('');
-  document.getElementById('totalSizeEnc').textContent = `총 ${encFiles.length}개 파일, ${formatSize(encFiles.reduce((a,b)=>a+b.file.size,0))}`;
-}
+function updateFileList() { const ul = document.getElementById('fileListEnc'); ul.innerHTML = encFiles.map(f => `<li><span>${f.path}</span><span class="size">${formatSize(f.file.size)}</span></li>`).join(''); document.getElementById('totalSizeEnc').textContent = `총 ${encFiles.length}개 파일, ${formatSize(encFiles.reduce((a,b)=>a+b.file.size,0))}`; }
+
+function detectFileSaveSupport() { return typeof window.showSaveFilePicker === 'function'; }
 
 async function initApp() {
-  const overlay = document.getElementById('loadingOverlay');
-  overlay.style.display = 'none';
-  if (location.protocol === 'file:') {
-    overlay.style.display = 'flex';
-    document.getElementById('loadingBox').innerHTML = `
-      <p style="color:var(--red); font-weight:600;">⚠️ 파일을 직접 열면 작동하지 않습니다</p>
-      <p class="note">보안 정책상 <code>file://</code> 프로토콜에서는 작동하지 않습니다.</p>
-      <p class="note">웹 서버로 열어주세요. <code>python3 -m http.server 8000</code></p>
-    `;
-    return;
-  }
+  if (location.protocol === 'file:') { alert('보안 정책상 file:// 프로토콜에서는 실행할 수 없습니다.\n웹 서버에 호스팅하여 접속해주세요.'); return; }
 
-  // Tabs
+  // 탭 전환
   document.querySelector('.tabs').addEventListener('click', e => {
     if (e.target.classList.contains('tab')) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -404,80 +200,23 @@ async function initApp() {
 
   document.getElementById('showEncPw').addEventListener('change', function(){ document.getElementById('encPassword').type = this.checked ? 'text' : 'password'; });
   document.getElementById('showDecPw').addEventListener('change', function(){ document.getElementById('decPassword').type = this.checked ? 'text' : 'password'; });
-
-  document.getElementById('authModeEnc').addEventListener('change', function(){
-    document.getElementById('keyfileBoxEnc').classList.toggle('hidden', this.value !== 'keyfile');
-    document.getElementById('mnemonicBoxEnc').classList.toggle('hidden', this.value !== 'mnemonic');
-  });
-  document.getElementById('authModeDec').addEventListener('change', function(){
-    document.getElementById('keyfileBoxDec').classList.toggle('hidden', this.value !== 'keyfile');
-    document.getElementById('mnemonicBoxDec').classList.toggle('hidden', this.value !== 'mnemonic');
-  });
-
-  document.getElementById('encPassword').addEventListener('input', function(){
-    const pw = this.value; let score = 0;
-    if(pw.length >= 8) score++; if(pw.length >= 12) score++;
-    if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-    if(/\d/.test(pw)) score++; if(/[^A-Za-z0-9]/.test(pw)) score++;
-    const bar = document.getElementById('pwStrengthEnc'), txt = document.getElementById('pwStrengthTextEnc');
-    bar.style.width = (score * 20) + '%';
-    bar.style.background = score < 2 ? 'var(--red)' : score < 4 ? 'var(--yellow)' : 'var(--green)';
-    txt.textContent = score < 2 ? '약함' : score < 4 ? '보통' : '강력함';
-  });
-
-  document.getElementById('addFilesEnc').addEventListener('click', () => {
-    const inp = document.createElement('input'); inp.type='file'; inp.multiple=true;
-    inp.onchange = () => { for(let f of inp.files) encFiles.push({file:f, path:f.name}); updateFileList(); };
-    inp.click();
-  });
-  document.getElementById('addFolderEnc').addEventListener('click', async () => {
-    try {
-      const dir = await window.showDirectoryPicker(); encFiles = [];
-      const walk = async (dh, pp) => { for await (const e of dh.values()) { const p=pp+e.name; if(e.kind==='file'){ const f=await e.getFile(); encFiles.push({file:f,path:p}); } else if(e.kind==='directory') await walk(e, p+'/'); } };
-      await walk(dir, '');
-      updateFileList();
-    } catch(e) { if(e.name !== 'AbortError') alert('폴더 선택이 지원되지 않는 브라우저입니다.'); }
-  });
+  document.getElementById('authModeEnc').addEventListener('change', function(){ document.getElementById('keyfileBoxEnc').classList.toggle('hidden', this.value !== 'keyfile'); document.getElementById('mnemonicBoxEnc').classList.toggle('hidden', this.value !== 'mnemonic'); });
+  document.getElementById('authModeDec').addEventListener('change', function(){ document.getElementById('keyfileBoxDec').classList.toggle('hidden', this.value !== 'keyfile'); document.getElementById('mnemonicBoxDec').classList.toggle('hidden', this.value !== 'mnemonic'); });
+  document.getElementById('encPassword').addEventListener('input', function(){ const pw = this.value; let score = 0; if(pw.length >= 8) score++; if(pw.length >= 12) score++; if(/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++; if(/\d/.test(pw)) score++; if(/[^A-Za-z0-9]/.test(pw)) score++; const bar = document.getElementById('pwStrengthEnc'), txt = document.getElementById('pwStrengthTextEnc'); bar.style.width = (score * 20) + '%'; bar.style.background = score < 2 ? 'var(--red)' : score < 4 ? 'var(--yellow)' : 'var(--green)'; txt.textContent = score < 2 ? '약함' : score < 4 ? '보통' : '강력함'; });
+  document.getElementById('addFilesEnc').addEventListener('click', () => { const inp = document.createElement('input'); inp.type='file'; inp.multiple=true; inp.onchange = () => { for(let f of inp.files) encFiles.push({file:f, path:f.name}); updateFileList(); }; inp.click(); });
+  document.getElementById('addFolderEnc').addEventListener('click', async () => { try { const dir = await window.showDirectoryPicker(); encFiles = []; const walk = async (dh, pp) => { for await (const e of dh.values()) { const p=pp+e.name; if(e.kind==='file'){ const f=await e.getFile(); encFiles.push({file:f,path:p}); } else if(e.kind==='directory') await walk(e, p+'/'); } }; await walk(dir, ''); updateFileList(); } catch(e) { if(e.name !== 'AbortError') alert('폴더 선택이 지원되지 않는 브라우저입니다.'); } });
   document.getElementById('clearFilesEnc').addEventListener('click', () => { encFiles = []; updateFileList(); });
-
   const dropZone = document.getElementById('dropZoneEnc');
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', async e => {
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    const items = e.dataTransfer.items;
-    if (!items) return;
-    const walk = async (entry, pp) => {
-      if (entry.isFile) { const file = await new Promise(res => entry.file(res)); encFiles.push({file, path: pp + '/' + entry.name}); }
-      else if (entry.isDirectory) {
-        const reader = entry.createReader();
-        const readAll = () => new Promise((res, rej) => { const all=[]; const read=()=>reader.readEntries(e=>{ if(e.length){ all.push(...e); read(); } else res(all); }, rej); read(); });
-        const entries = await readAll();
-        for (const e of entries) await walk(e, pp + '/' + entry.name);
-      }
-    };
-    for (let i=0; i<items.length; i++) { const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null; if (entry) await walk(entry, ''); }
-    updateFileList();
-  });
+  dropZone.addEventListener('drop', async e => { e.preventDefault(); dropZone.classList.remove('drag-over'); const items = e.dataTransfer.items; if (!items) return; const walk = async (entry, pp) => { if (entry.isFile) { const file = await new Promise(res => entry.file(res)); encFiles.push({file, path: pp + '/' + entry.name}); } else if (entry.isDirectory) { const reader = entry.createReader(); const readAll = () => new Promise((res, rej) => { const all=[]; const read=()=>reader.readEntries(e=>{ if(e.length){ all.push(...e); read(); } else res(all); }, rej); read(); }); const entries = await readAll(); for (const e of entries) await walk(e, pp + '/' + entry.name); } }; for (let i=0; i<items.length; i++) { const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null; if (entry) await walk(entry, ''); } updateFileList(); });
+  document.getElementById('selectOutputDirDec').addEventListener('click', async () => { try { decOutputDirHandle = await window.showDirectoryPicker(); document.getElementById('outputDirDecPath').textContent = '📁 ' + decOutputDirHandle.name; } catch(e) { if(e.name!=='AbortError') alert('폴더 선택 불가, TAR 파일로 저장됩니다.'); } });
+  document.getElementById('genKeyfileEnc').addEventListener('click', async () => { const buf = crypto.getRandomValues(new Uint8Array(512)); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = 'uooo_keyfile.key'; a.click(); });
+  document.getElementById('genMnemonicEnc').addEventListener('click', async () => { const m = await generateMnemonic(); document.getElementById('mnemonicEnc').value = m; alert('복구 구문 생성됨.'); });
 
-  document.getElementById('selectOutputDirDec').addEventListener('click', async () => {
-    try { decOutputDirHandle = await window.showDirectoryPicker(); document.getElementById('outputDirDecPath').textContent = '📁 ' + decOutputDirHandle.name; }
-    catch(e) { if(e.name!=='AbortError') alert('폴더 선택 불가, TAR 다운로드됩니다.'); }
-  });
-
-  document.getElementById('genKeyfileEnc').addEventListener('click', async () => {
-    const buf = crypto.getRandomValues(new Uint8Array(512));
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = 'uooo_keyfile.key'; a.click();
-  });
-  document.getElementById('genMnemonicEnc').addEventListener('click', async () => {
-    const m = await generateMnemonic();
-    document.getElementById('mnemonicEnc').value = m; alert('복구 구문 생성됨.');
-  });
-
+  // 암호화 메인
   document.getElementById('encryptBtn').addEventListener('click', startEncrypt);
   document.getElementById('cancelEncryptBtn').addEventListener('click', () => abortController?.abort());
-  document.getElementById('decryptBtn').addEventListener('click', startDecrypt);
-  document.getElementById('cancelDecryptBtn').addEventListener('click', () => abortController?.abort());
 
   async function startEncrypt() {
     if (!encFiles.length) return alert('파일을 추가하세요.');
@@ -485,22 +224,16 @@ async function initApp() {
     const preset = document.getElementById('argonPresetEnc').value;
     const mode = document.getElementById('authModeEnc').value;
     let second;
-    if (mode === 'keyfile') {
-      const f = document.getElementById('keyfileEnc').files[0]; if (!f) return alert('키 파일 선택');
-      second = new Uint8Array(await f.arrayBuffer());
-      if (second.length < 512) return alert('512B 이상 키 파일 필요');
-      const ent = shannonEntropy(second);
-      document.getElementById('keyfileInfoEnc').textContent = `엔트로피: ${ent.toFixed(1)}`;
-      if (ent < 6.5 && !confirm(`엔트로피 낮음(${ent.toFixed(1)}). 계속?`)) return;
-    } else {
-      const m = document.getElementById('mnemonicEnc').value.trim();
-      if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
-      second = m;
-    }
+    if (mode === 'keyfile') { const f = document.getElementById('keyfileEnc').files[0]; if (!f) return alert('키 파일 선택'); second = new Uint8Array(await f.arrayBuffer()); if (second.length < 512) return alert('512B 이상 키 파일 필요'); const ent = shannonEntropy(second); document.getElementById('keyfileInfoEnc').textContent = `엔트로피: ${ent.toFixed(1)}`; if (ent < 6.5 && !confirm(`엔트로피 낮음(${ent.toFixed(1)}). 계속?`)) return; }
+    else { const m = document.getElementById('mnemonicEnc').value.trim(); if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요'); second = m; }
+
     const status = document.getElementById('statusEnc'), prog = document.getElementById('progressEnc');
     const cancelBtn = document.getElementById('cancelEncryptBtn'), startBtn = document.getElementById('encryptBtn');
     status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
     abortController = new AbortController(); const signal = abortController.signal;
+
+    const splitMode = document.getElementById('splitModeEnc').checked;
+    const maxPartSize = parseInt(document.getElementById('splitSizeEnc').value) * 1024 * 1024; // MB to bytes
 
     try {
       const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -508,22 +241,47 @@ async function initApp() {
       const wkey = await deriveWrappingKey(pw, salt, second, preset);
       const { nonce: wnonce, wrapped } = await wrapFEK(fek, wkey); wkey.fill(0);
 
-      let writer;
-      if (typeof window.showSaveFilePicker === 'function') {
-        try { const handle = await window.showSaveFilePicker({ suggestedName: 'encrypted.uooo' }); writer = (await handle.createWritable()).getWriter(); }
-        catch (e) { writer = streamSaver.createWriteStream('encrypted.uooo').getWriter(); }
-      } else writer = streamSaver.createWriteStream('encrypted.uooo').getWriter();
-
       const magic = encoder.encode('UOOO'), version = new Uint8Array([1]), wlenBuf = new Uint16Array([wrapped.length]);
       const baseNonce = crypto.getRandomValues(new Uint8Array(8));
-      await writer.write(magic); await writer.write(version); await writer.write(salt);
-      await writer.write(wnonce); await writer.write(new Uint8Array(wlenBuf.buffer)); await writer.write(wrapped);
-      await writer.write(baseNonce);
+      const header = concat(magic, version, salt, wnonce, new Uint8Array(wlenBuf.buffer), wrapped, baseNonce);
 
-      let chunkIndex = 0; // 🔥 전역 인덱스
+      let partIndex = 0;
+      let partBuffer = [];
+      let partSize = 0;
+
+      async function flushPart(isLast) {
+        if (partBuffer.length === 0 && !isLast) return;
+        const partData = concat(...partBuffer);
+        const partName = `encrypted.uooo.part${String(partIndex).padStart(4, '0')}`;
+        const blob = new Blob([partData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = partName; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        partBuffer = [];
+        partSize = 0;
+        partIndex++;
+      }
+
+      // 헤더를 첫 파트에만 넣기
+      if (splitMode) {
+        partBuffer.push(header);
+        partSize += header.length;
+      } else {
+        let writer;
+        if (detectFileSaveSupport()) {
+          const handle = await window.showSaveFilePicker({ suggestedName: 'encrypted.uooo' });
+          writer = (await handle.createWritable()).getWriter();
+          await writer.write(header);
+        } else {
+          partBuffer.push(header);
+        }
+      }
+
+      let chunkIndex = 0;
       const totalBytes = encFiles.reduce((s,f) => s+f.file.size, 0);
       let processed = 0;
-      status.textContent = '암호화 중...';
+      status.textContent = splitMode ? '암호화 중 (분할 저장)...' : '암호화 중...';
       for await (const archChunk of archiveStream(encFiles)) {
         if (signal.aborted) break;
         for (let offset = 0; offset < archChunk.byteLength; offset += CHUNK_SIZE) {
@@ -532,14 +290,41 @@ async function initApp() {
           const aad = new Uint8Array(4); new DataView(aad.buffer).setUint32(0, chunkIndex, false);
           const cipherChunk = await encryptChunk(fek, baseNonce, chunkIndex, aad, plainChunk);
           const sizeBuf = new Uint32Array([cipherChunk.length]);
-          await writer.write(new Uint8Array(sizeBuf.buffer)); await writer.write(cipherChunk);
+          const frame = concat(new Uint8Array(sizeBuf.buffer), cipherChunk);
+
+          if (splitMode) {
+            partBuffer.push(frame);
+            partSize += frame.length;
+            if (partSize >= maxPartSize) {
+              await flushPart(false);
+            }
+          } else if (writer) {
+            await writer.write(frame);
+          } else {
+            partBuffer.push(frame);
+          }
+
           processed += plainChunk.length;
           prog.value = Math.min(100, Math.round(processed / totalBytes * 100));
           chunkIndex++;
         }
       }
-      await writer.close();
-      status.textContent = '✅ 암호화 완료'; prog.value = 100;
+
+      if (splitMode) {
+        if (partBuffer.length > 0) await flushPart(true);
+        status.textContent = `✅ 암호화 완료 (${partIndex}개 파트 다운로드)`;
+      } else if (writer) {
+        await writer.close();
+        status.textContent = '✅ 암호화 완료';
+      } else {
+        const blob = new Blob(partBuffer, { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'encrypted.uooo'; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        status.textContent = '✅ 암호화 완료 (Blob 다운로드)';
+      }
+      prog.value = 100;
     } catch (e) {
       if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
       else status.textContent = '❌ 오류: ' + e.message;
@@ -550,27 +335,48 @@ async function initApp() {
     }
   }
 
+  // 복호화 메인
+  document.getElementById('decryptBtn').addEventListener('click', startDecrypt);
+  document.getElementById('cancelDecryptBtn').addEventListener('click', () => abortController?.abort());
+
   async function startDecrypt() {
-    const vaultFile = document.getElementById('vaultFileDec').files[0]; if (!vaultFile) return alert('.uooo 파일 선택');
+    const fileInput = document.getElementById('vaultFileDec');
+    const files = fileInput.files;
+    if (!files.length) return alert('.uooo 파일 또는 파트 파일들을 선택하세요.');
+
+    // 파트 파일 정렬 (이름 기준)
+    const sortedFiles = Array.from(files).sort((a, b) => a.name.localeCompare(b.name));
+    const isMultiPart = sortedFiles.length > 1 || sortedFiles[0].name.includes('.part');
+
     const pw = document.getElementById('decPassword').value; if (!pw) return alert('비밀번호 입력');
     const preset = document.getElementById('argonPresetDec').value;
     const mode = document.getElementById('authModeDec').value;
     let second;
-    if (mode === 'keyfile') {
-      const f = document.getElementById('keyfileDec').files[0]; if (!f) return alert('키 파일 선택');
-      second = new Uint8Array(await f.arrayBuffer());
-    } else {
-      const m = document.getElementById('mnemonicDec').value.trim();
-      if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요');
-      second = m;
-    }
+    if (mode === 'keyfile') { const f = document.getElementById('keyfileDec').files[0]; if (!f) return alert('키 파일 선택'); second = new Uint8Array(await f.arrayBuffer()); }
+    else { const m = document.getElementById('mnemonicDec').value.trim(); if (!m || !(await validateMnemonic(m))) return alert('유효한 24단어 복구 구문 필요'); second = m; }
+
     const status = document.getElementById('statusDec'), prog = document.getElementById('progressDec');
     const cancelBtn = document.getElementById('cancelDecryptBtn'), startBtn = document.getElementById('decryptBtn');
     status.textContent = ''; prog.value = 0; prog.classList.remove('hidden'); cancelBtn.classList.remove('hidden'); startBtn.disabled = true;
     abortController = new AbortController(); const signal = abortController.signal;
 
     try {
-      const reader = new BufferedStreamReader(vaultFile.stream());
+      // 여러 파일을 순차적으로 읽는 ReadableStream 생성
+      const multiFileStream = new ReadableStream({
+        async start(controller) {
+          for (const file of sortedFiles) {
+            const reader = file.stream().getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          }
+          controller.close();
+        }
+      });
+
+      const reader = new BufferedStreamReader(multiFileStream);
       const magic = await reader.readExactly(4); if (decoder.decode(magic) !== 'UOOO') throw new Error('올바른 uooo 파일 아님');
       const ver = await reader.readExactly(1); if (ver[0] !== 1) throw new Error('지원되지 않는 버전');
       const salt = await reader.readExactly(16);
@@ -616,13 +422,26 @@ async function initApp() {
         }
         status.textContent = '✅ 복호화 완료 (폴더 저장)';
       } else {
-        const writer = streamSaver.createWriteStream('decrypted.tar').getWriter();
+        const tarChunks = [];
         for await (const chunk of tarFromEntries(archive.entries())) {
           if (signal.aborted) break;
-          await writer.write(chunk);
+          tarChunks.push(chunk);
         }
-        await writer.close();
-        status.textContent = '✅ 복호화 완료 (TAR 다운로드)';
+        if (detectFileSaveSupport()) {
+          const handle = await window.showSaveFilePicker({ suggestedName: 'decrypted.tar' });
+          const writer = (await handle.createWritable()).getWriter();
+          for (const chunk of tarChunks) await writer.write(chunk);
+          await writer.close();
+          status.textContent = '✅ 복호화 완료 (TAR 파일 저장)';
+        } else {
+          const blob = new Blob(tarChunks, { type: 'application/x-tar' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'decrypted.tar';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          status.textContent = '✅ 복호화 완료 (TAR Blob 다운로드)';
+        }
       }
     } catch (e) {
       if (e.name === 'AbortError') status.textContent = '⏹️ 중단됨';
