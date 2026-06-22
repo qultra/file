@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>uooo — 궁극의 파일 암호화</title>
-<!-- StreamSaver – 스트리밍 다운로드 폴백 (HTTPS 환경 권장) -->
+<!-- StreamSaver (MIT) – 스트리밍 다운로드 폴백 -->
 <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.3/StreamSaver.min.js"></script>
 <style>
   :root {
@@ -245,33 +245,43 @@ const WORDLIST = ["abandon","ability","able","about","above","absent","absorb","
 
 // ==================== Web Crypto API 기반 암호화 ====================
 const PBKDF2_ITERATIONS = { moderate: 100000, high: 300000, extreme: 600000, ultimate: 1000000 };
+
 async function aesGcmEncrypt(key, plaintext, nonce, aad) {
   const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['encrypt']);
   return new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, plaintext));
 }
+
 async function aesGcmDecrypt(key, ciphertext, nonce, aad) {
   const k = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['decrypt']);
   return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, k, ciphertext));
 }
+
 async function hkdf(ikm, salt, info, length) {
   const key = await crypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: encoder.encode(info) }, key, length * 8));
 }
+
 async function derivePasswordKey(password, salt, iterations) {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256));
 }
+
 async function hmacSha256(keyData, message) {
   const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, message));
 }
-async function keyfileToKey(keyfileBuf, salt) { return await hmacSha256(keyfileBuf, salt); }
+
+async function keyfileToKey(keyfileBuf, salt) {
+  return await hmacSha256(keyfileBuf, salt);
+}
+
 async function mnemonicToSeed(mnemonic) {
   const mnemonicBuffer = encoder.encode(mnemonic.normalize('NFKD'));
   const salt = encoder.encode('mnemonic');
   const key = await crypto.subtle.importKey('raw', mnemonicBuffer, { name: 'PBKDF2' }, false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 2048, hash: 'SHA-512' }, key, 512));
 }
+
 async function generateMnemonic() {
   const entropy = crypto.getRandomValues(new Uint8Array(32));
   const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', entropy));
@@ -282,6 +292,7 @@ async function generateMnemonic() {
   for (let i = 0; i < bits.length; i += 11) words.push(WORDLIST[parseInt(bits.substring(i, i + 11), 2)]);
   return words.join(' ');
 }
+
 async function validateMnemonic(mnemonic) {
   const words = mnemonic.trim().split(/\s+/);
   if (words.length !== 24) return false;
@@ -299,6 +310,7 @@ async function validateMnemonic(mnemonic) {
   const expected = hash[0].toString(2).padStart(8, '0').substring(0, 8);
   return checksumBits === expected;
 }
+
 async function deriveWrappingKey(password, salt, secondFactor, preset) {
   const iterations = PBKDF2_ITERATIONS[preset] || 600000;
   const pwk = await derivePasswordKey(password, salt, iterations);
@@ -315,24 +327,30 @@ async function deriveWrappingKey(password, salt, secondFactor, preset) {
   ikm.fill(0);
   return wrappingKey;
 }
+
 async function wrapFEK(fek, wkey) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const wrapped = await aesGcmEncrypt(wkey, fek, nonce, new Uint8Array(0));
   return { nonce, wrapped };
 }
+
 async function unwrapFEK(wrapped, nonce, wkey) {
   return await aesGcmDecrypt(wkey, wrapped, nonce, new Uint8Array(0));
 }
+
 function getNonceForChunk(baseNonce, chunkIndex) {
   const nonce = new Uint8Array(12);
   nonce.set(baseNonce, 0);
-  new DataView(nonce.buffer).setUint32(8, chunkIndex, false);
+  const view = new DataView(nonce.buffer);
+  view.setUint32(8, chunkIndex, false);
   return nonce;
 }
+
 async function encryptChunk(fek, baseNonce, chunkIndex, aad, plainChunk) {
   const nonce = getNonceForChunk(baseNonce, chunkIndex);
   return await aesGcmEncrypt(fek, plainChunk, nonce, aad);
 }
+
 async function decryptChunk(fek, baseNonce, chunkIndex, aad, cipherChunk) {
   const nonce = getNonceForChunk(baseNonce, chunkIndex);
   return await aesGcmDecrypt(fek, cipherChunk, nonce, aad);
@@ -340,6 +358,7 @@ async function decryptChunk(fek, baseNonce, chunkIndex, aad, cipherChunk) {
 
 // ==================== 아카이브 & 스트리밍 ====================
 const CHUNK_SIZE = 256 * 1024;
+
 async function* archiveStream(files) {
   for (let f of files) {
     const nameBytes = encoder.encode(f.path);
@@ -356,8 +375,9 @@ async function* archiveStream(files) {
       yield value;
     }
   }
-  yield new Uint8Array(new Uint16Array([0]).buffer);
+  yield new Uint8Array(new Uint16Array([0]).buffer); // 종료 마커
 }
+
 function tarHeader(filename, size) {
   const buf = new Uint8Array(512);
   const name = encoder.encode(filename);
@@ -374,6 +394,7 @@ function tarHeader(filename, size) {
   buf.set(encoder.encode(sum.toString(8).padStart(6, '0') + '\0 '), 148);
   return buf;
 }
+
 async function* tarFromEntries(entries) {
   for await (let e of entries) {
     yield tarHeader(e.fileName, e.fileSize);
@@ -390,6 +411,7 @@ async function* tarFromEntries(entries) {
   }
   yield new Uint8Array(1024);
 }
+
 class ArchiveReader {
   constructor(reader) { this.reader = reader; }
   async *entries() {
@@ -435,10 +457,10 @@ function updateFileList() {
 
 async function initApp() {
   const overlay = document.getElementById('loadingOverlay');
-  const loadingBox = document.getElementById('loadingBox');
   overlay.style.display = 'none';
   if (location.protocol === 'file:') {
-    loadingBox.innerHTML = `
+    overlay.style.display = 'flex';
+    document.getElementById('loadingBox').innerHTML = `
       <p style="color:var(--red); font-weight:600;">⚠️ 파일을 직접 열면 작동하지 않습니다</p>
       <p class="note" style="margin-top:1rem;">보안 정책상 <code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">file://</code> 프로토콜에서는<br>일부 기능이 제한될 수 있습니다.</p>
       <p class="note" style="margin-top:0.5rem;">아래 방법으로 웹 서버를 실행한 후 접속해주세요.</p>
@@ -449,11 +471,10 @@ async function initApp() {
         <p class="note">3. 브라우저에서 <code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">http://localhost:8000/uooo.html</code> 열기</p>
       </div>
     `;
-    overlay.style.display = 'flex';
     return;
   }
 
-  // 탭 전환 등록
+  // 탭 전환
   document.querySelector('.tabs').addEventListener('click', e => {
     if (e.target.classList.contains('tab')) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -601,15 +622,13 @@ async function initApp() {
 
       const totalBytes = encFiles.reduce((s,f) => s+f.file.size, 0);
       let processed = 0;
-      let chunkIndex = 0;
       status.textContent = '암호화 중...';
-
       for await (const archChunk of archiveStream(encFiles)) {
         if (signal.aborted) break;
-        // archChunk는 항상 Uint8Array임 (종료 마커도 Uint8Array로 감쌈)
+        let chunkIndex = 0;
         for (let offset = 0; offset < archChunk.byteLength; offset += CHUNK_SIZE) {
           const end = Math.min(offset + CHUNK_SIZE, archChunk.byteLength);
-          const plainChunk = archChunk.slice(offset, end); // ✅ 수정: .subarray 대신 .slice 사용 가능
+          const plainChunk = new Uint8Array(archChunk.buffer.slice(offset, end));
           const aad = new Uint8Array(4);
           new DataView(aad.buffer).setUint32(0, chunkIndex, false);
           const cipherChunk = await encryptChunk(fek, baseNonce, chunkIndex, aad, plainChunk);
@@ -621,7 +640,6 @@ async function initApp() {
           chunkIndex++;
         }
       }
-
       await writer.close();
       status.textContent = '✅ 암호화 완료'; prog.value = 100;
     } catch (e) {
@@ -726,7 +744,6 @@ async function initApp() {
   }
 }
 
-// DOM 로딩 후 초기화
 window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
